@@ -79,5 +79,6 @@ CREATE TABLE ig_tags
 (
 	tag_name VARCHAR(35),
 	tag_num_posts INT,
+	freshness DATE,
 	PRIMARY KEY(tag_name)
 );
