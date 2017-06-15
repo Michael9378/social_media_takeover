@@ -1,0 +1,39 @@
+========================
+
+Tables
+	- Users
+		- Username
+		- Profile Image
+		- Num Posts
+		- Num Followers
+		- Num Following
+		- Real Name
+		- Description
+		- Website
+
+	- Follows
+		- Username
+		- Follows username
+
+	- Posts
+		- Post ID
+		- Username
+		- Post Time
+		- Num Likes 
+		- Description
+		- Location
+
+	- Likes
+		- Username
+		- Post ID
+
+	- Comments
+		- Username
+		- Post ID
+		- Comment
+
+	- Tags
+		- Tag Name
+		- Post Count
+
+========================
