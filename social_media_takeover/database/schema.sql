@@ -25,10 +25,7 @@ CREATE TABLE ig_follows
 	user_id VARCHAR(35),
 	follows_user_id VARCHAR(35),
 	freshness DATE,
-	PRIMARY KEY (user_id, follows_user_id),
-	FOREIGN KEY (user_id) references ig_users (user_id)
-		ON DELETE CASCADE
-		ON UPDATE CASCADE
+	PRIMARY KEY (user_id, follows_user_id)
 );
 
 CREATE TABLE ig_posts
@@ -66,7 +63,7 @@ CREATE TABLE ig_comments
 	user_id VARCHAR(35),
 	comment_content VARCHAR(500),
 	freshness DATE,
-	PRIMARY KEY(post_id, user_id),
+	PRIMARY KEY(post_id, user_id, comment_content),
 	FOREIGN KEY(post_id) references ig_posts(post_id)
 		ON DELETE CASCADE
 		ON UPDATE CASCADE,
