@@ -1,0 +1,1 @@
+1. EDITS TO AUTO FOLLOWS: Scrape my follower base and get avg and std of followers/following numbers and use to curve auto_follows stats.

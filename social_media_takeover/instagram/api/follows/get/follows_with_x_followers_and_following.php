@@ -13,6 +13,6 @@ if( isset( $_POST["follow_sum"] ) ){
 	jr( sql_get_query( $sql ) );
 }
 else
-	jr("Missing parameters.");
+	jr("Missing follow_sum param.");
 
 ?>

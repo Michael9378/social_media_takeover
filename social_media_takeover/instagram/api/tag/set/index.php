@@ -16,7 +16,7 @@ if( isset( $_POST["tag_name"] ) && isset( $_POST["tag_num_posts"] ) ){
 	jr( sql_set_query( $sql ) );
 }
 else
-	jr("Missing parameters.");
+	jr("Missing tag_name and/or tag_num_posts params.");
 
 ?>
 

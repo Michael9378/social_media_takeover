@@ -17,5 +17,5 @@ if( isset( $_POST["user_id"] ) ){
 	jr( sql_get_query( $sql ) );
 }
 else
-	jr("Missing parameters.");
+	jr("Missing user_id param.");
 ?>

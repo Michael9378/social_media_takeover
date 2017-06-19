@@ -24,6 +24,7 @@ CREATE TABLE ig_follows
 (
 	user_id VARCHAR(35),
 	follows_user_id VARCHAR(35),
+	follows_unfollow_date DATE,
 	freshness DATE,
 	PRIMARY KEY (user_id, follows_user_id)
 );
