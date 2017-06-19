@@ -1,0 +1,11 @@
+Populate db: 
+	*Start with a userid*
+	Push all follower/following users info for current user.
+	Find missing users in follow database and populate that info.
+	*Start with tag*
+	Grab author uid for post
+	Grab uid for all people that like the post
+	Grab uid of all commenters of post
+	Move to all posts available
+	Populate user table
+	Populate user_tag_interest table

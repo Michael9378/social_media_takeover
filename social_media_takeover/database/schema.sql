@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS ig_posts;
 DROP TABLE IF EXISTS ig_likes;
 DROP TABLE IF EXISTS ig_comments;
 DROP TABLE IF EXISTS ig_tags;
+DROP TABLE IF EXISTS ig_user_tag_interest;
 
 CREATE TABLE ig_users
 (
@@ -79,4 +80,17 @@ CREATE TABLE ig_tags
 	tag_num_posts INT,
 	freshness DATE,
 	PRIMARY KEY(tag_name)
+);
+
+CREATE TABLE ig_user_tag_interest
+(
+	user_id VARCHAR(35),
+	tag_name VARCHAR(35),
+	PRIMARY KEY(user_id, tag_name),
+	FOREIGN KEY(user_id) references ig_users(user_id)
+		ON DELETE CASCADE
+		ON UPDATE CASCADE,
+	FOREIGN KEY(tag_name) references ig_tags(tag_name)
+		ON DELETE CASCADE
+		ON UPDATE CASCADE
 );

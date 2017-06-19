@@ -7,8 +7,16 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["num_follows"] ) ){
 
 	$user_id = $_POST["user_id"];
 	$num_follows = $_POST["num_follows"];
+	$sql = "";
 
-	$sql = "SELECT DISTINCT user_id ";
+	if( isset( $_POST["tag_name"] ) ){
+		$tag_name = $_POST["tag_name"];
+		$sql .= "SELECT DISTINCT `user_id` ";
+		$sql .= "FROM `ig_user_tag_interest` ";
+		$sql .= "WHERE `tag_name` == '".$tag_name."' AND `user_id` IN (";
+	}
+
+	$sql .= "SELECT DISTINCT `user_id` ";
 	$sql .= "FROM `ig_users` ";
 	$sql .= "WHERE `user_num_followers` <= 800 ";
 	$sql .= "AND `user_num_following` <= 800 ";
@@ -20,7 +28,12 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["num_follows"] ) ){
 	$sql .= "(SELECT `user_id` FROM `ig_follows` WHERE `follows_user_id` == '".$user_id."')";
 	$sql .= "AND `user_id` NOT IN ";
 	$sql .= "(SELECT `follows_user_id` FROM `ig_follows` WHERE `user_id` == '".$user_id."')";
-	$sql .= "ORDER BY `user_num_followers` ASC":
+	$sql .= "ORDER BY `user_num_followers` ASC";
+
+	if( isset( $_POST["tag_name"] ) ){
+		$sql .= ") ";
+	}
+
 	$sql .= "LIMIT 0,".$num_follows.";";
 	
 	jr( sql_get_query( $sql ) );
