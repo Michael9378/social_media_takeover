@@ -1,0 +1,26 @@
+Bot Tasks:
+	1. Fill tag interests with users.
+	2. Fill follows table with my info.
+	3. Scrape for user data from tag map and follows tables.
+	4. Like posts based on tags.
+	5. Follow users from auto_follows.php.
+
+
+Tasks:
+***
+Start with tag.
+Grab post in category.
+Store it in database.
+Add author to tag database.
+Go to author page.
+Add author to user table.
+If suitable, like post.
+If suitable, follow user.
+***
+Unfollow user.
+Update database.
+***
+Grab user from missing query.
+Scrape user info.
+Update user table.
+***

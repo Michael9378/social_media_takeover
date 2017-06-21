@@ -25,9 +25,7 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["num_follows"] ) ){
 	$sql .= "AND `user_num_followers` >= 150 ";
 	$sql .= "AND `user_num_following` >= 200 ";
 	$sql .= "AND `user_id` NOT IN ";
-	$sql .= "(SELECT `user_id` FROM `ig_follows` WHERE `follows_user_id` == '".$user_id."')";
-	$sql .= "AND `user_id` NOT IN ";
-	$sql .= "(SELECT `follows_user_id` FROM `ig_follows` WHERE `user_id` == '".$user_id."')";
+	$sql .= "(SELECT `user_id` FROM `ig_follows` WHERE `follows_user_id` == '".$user_id."' OR `user_id` == '".$user_id."')";
 	$sql .= "ORDER BY `user_num_followers` ASC";
 
 	if( isset( $_POST["tag_name"] ) ){

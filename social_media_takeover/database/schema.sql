@@ -86,11 +86,6 @@ CREATE TABLE ig_user_tag_interest
 (
 	user_id VARCHAR(35),
 	tag_name VARCHAR(35),
-	PRIMARY KEY(user_id, tag_name),
-	FOREIGN KEY(user_id) references ig_users(user_id)
-		ON DELETE CASCADE
-		ON UPDATE CASCADE,
-	FOREIGN KEY(tag_name) references ig_tags(tag_name)
-		ON DELETE CASCADE
-		ON UPDATE CASCADE
+	freshness DATE,
+	PRIMARY KEY(user_id, tag_name)
 );

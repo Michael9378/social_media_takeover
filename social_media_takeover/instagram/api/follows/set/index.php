@@ -18,7 +18,6 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["follows_user_id"] ) ){
 	$sql = "INSERT INTO `ig_follows` ";
 	$sql .= "VALUES('".$user_id."', '".$follows_user_id."', '".$follows_unfollow_date."', '".$date."') ";
 	$sql .= "ON DUPLICATE KEY UPDATE ";
-	$sql .= "`follows_user_id`='".$follows_user_id."',";
 	$sql .= "`follows_unfollow_date`=".$follows_unfollow_date.","; // no '' wrapping this var as already wrapped into variable
 	$sql .= "`freshness`='".$date."';";
 	
