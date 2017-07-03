@@ -6,6 +6,8 @@ DROP TABLE IF EXISTS ig_likes;
 DROP TABLE IF EXISTS ig_comments;
 DROP TABLE IF EXISTS ig_tags;
 DROP TABLE IF EXISTS ig_user_tag_interest;
+DROP TABLE IF EXISTS ig_botaction_follow;
+DROP TABLE IF EXISTS ig_botaction_like;
 
 CREATE TABLE ig_users
 (
@@ -88,4 +90,20 @@ CREATE TABLE ig_user_tag_interest
 	tag_name VARCHAR(35),
 	freshness DATE,
 	PRIMARY KEY(user_id, tag_name)
+);
+
+CREATE TABLE ig_botaction_follow
+(
+	user_id VARCHAR(35),
+	follows_user_id VARCHAR(35),
+	action_date DATE,
+	PRIMARY KEY (user_id, follows_user_id)
+);
+
+CREATE TABLE ig_botaction_like
+(
+	post_id VARCHAR(35),
+	user_id VARCHAR(35),
+	action_date DATE,
+	PRIMARY KEY(post_id, user_id)
 );
