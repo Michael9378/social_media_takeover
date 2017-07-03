@@ -1,0 +1,21 @@
+botaction_follows
+	- set
+		http://socialmedia.michaeljscott.net/instagram/api/botaction_follows/set/
+		user_id: user1
+		follows_user_id: user2
+
+	- get
+		http://socialmedia.michaeljscott.net/instagram/api/botaction_follows/get/
+		user_id: user1
+
+botaction_like
+	- set
+		http://socialmedia.michaeljscott.net/instagram/api/botaction_like/set/
+		user_id: user1
+		post_id: post1
+	- get
+		http://socialmedia.michaeljscott.net/instagram/api/botaction_like/get/
+		user_id: user1
+		http://socialmedia.michaeljscott.net/instagram/api/botaction_like/get/
+		post_id: post1
+

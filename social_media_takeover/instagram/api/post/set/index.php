@@ -3,7 +3,7 @@
 
 require getcwd().'/../../lib/h.php';
 
-if( isset( $_POST["post_id"] ) ){
+if( isset( $_POST["post_id"] ) && isset( $_POST["user_id"] ) ){
 
 	$post_id = $_POST["post_id"];
 	$user_id = $_POST["user_id"];
@@ -18,9 +18,7 @@ if( isset( $_POST["post_id"] ) ){
 
 	// only update the passed values
 	$sql .= "ON DUPLICATE KEY UPDATE ";
-
-	if( isset( $_POST["user_id"] ) )
-		$sql .= "`user_id`=".$user_id.",";
+	
 	if( isset( $_POST["post_time"] ) )
 		$sql .= "`post_time`=".$post_time.",";
 	if( isset( $_POST["num_likes"] ) )
@@ -38,6 +36,6 @@ if( isset( $_POST["post_id"] ) ){
 }
 
 else
-	jr("Missing post_id param.");
+	jr("Missing post_id/user_id param.");
 
 ?>

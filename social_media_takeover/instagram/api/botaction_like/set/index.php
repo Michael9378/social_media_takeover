@@ -10,7 +10,7 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["post_id"] ) ){
 	$date = date("Y/m/d");
 
 	$sql = "INSERT INTO `ig_botaction_like` ";
-	$sql .= "VALUES('".$user_id."', '".$post_id."', '".$date."') ";
+	$sql .= "VALUES('".$post_id."', '".$user_id."', '".$date."') ";
 	$sql .= "ON DUPLICATE KEY UPDATE ";
 	$sql .= "`action_date`='".$date."';";
 	
