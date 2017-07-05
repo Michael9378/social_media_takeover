@@ -14,6 +14,14 @@
 // Global variables
 var api_url = "http://socialmedia.michaeljscott.net/instagram/api";
 
+/*
+Major TODOs:
+		Finish getPageInfo
+		Create bot logic to control page flows
+		Create scrape for following info function
+		Create write to DB functions for page functions 
+		(ideally you call 'writeDB(page)' and it will automatically parse out the object and write out)
+*/
 
 // returns object containing all relevant info of current page.
 function getPageInfo() {
@@ -61,7 +69,10 @@ function getTagPageInfo() {
 
 // scrapes user page for all relevant info and returns in formatted object
 function getUserPageInfo() {
-    
+	
+		// use this shit instead
+    // window._sharedData.entry_data.ProfilePage[0].user
+
     var userObj = {};
 
     // username is in url
@@ -129,7 +140,7 @@ function getUserNumFollowing(infoList) {
 
 // TODO
 function getUserFollowingInfo() {
-	
+
 		alert("getUserFollowingInfo() not implemented yet");
 		return null;
 
