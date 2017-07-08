@@ -28,7 +28,6 @@ var api_url = "http://socialmedia.michaeljscott.net/instagram/api";
 
 /*
 // Will get all user info
-var followBase = {};
 var userObj = getPageInfo();
 getUserFollowBase(getPageInfo(), function (result) {
     console.log("done");
@@ -253,13 +252,13 @@ function getUserFollowBaseHelper(userObj, followFlag, results, callback) {
 
         console.log(container);
 
-        var limit = 2000;
+        var expectedSize = 2000;
         if (followFlag == 0)
-            limit = userObj.numFollowers;
+            expectedSize = userObj.numFollowers;
         else
-            limit = userObj.numFollowing;
+            expectedSize = userObj.numFollowing;
 
-        scrollBottom(container, 0, 0, 0, function () {
+        scrollBottom(container, expectedSize 0, 0, 0, function () {
 
             // we reached the bottom of the list
             var follower_elements = container.find("li a[title]");
@@ -278,7 +277,7 @@ function getUserFollowBaseHelper(userObj, followFlag, results, callback) {
 }
 
 // takes a jQuery element in and scrolls to the bottom of the list
-function scrollBottom(container, old_li_count, li_matches, index, callback) {
+function scrollBottom(container, expectedSize, old_li_count, li_matches, index, callback) {
 
     if (typeof index != "number")
         index = 0;
@@ -296,8 +295,15 @@ function scrollBottom(container, old_li_count, li_matches, index, callback) {
     else
         li_matches = 0;
 
-    // check if we have more than 5 hits or more than 2000 in a list
-    if( li_matches >=5 || li_count > 2000 || index > 500){
+    // stop if we have looped for more than 100 seconds
+    // or hit at least 2000 follows in the list
+    if( index > 500 || li_count > 2000 || ((li_matches >=5)  && (li_count > 0.95*expectedSize)) ){
+        callback();
+        return;
+    }
+    // stop if we have hit 5 matches in a row and are sure we have collected at least 95% of the list in question
+    // otherwise reset the counter and try again
+    if(  ((li_matches >= 5)  && (li_count > 0.95*expectedSize)) ){
         callback();
         return;
     }
