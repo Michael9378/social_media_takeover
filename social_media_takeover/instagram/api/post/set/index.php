@@ -8,25 +8,25 @@ if( isset( $_POST["post_id"] ) && isset( $_POST["user_id"] ) ){
 	$post_id = $_POST["post_id"];
 	$user_id = $_POST["user_id"];
 	$post_time = $_POST["post_time"];
-	$num_likes = $_POST["num_likes"];
-	$description = $_POST["description"];
-	$location = $_POST["location"];
+	$post_num_likes = $_POST["post_num_likes"];
+	$post_description = $_POST["post_description"];
+	$post_is_video = $_POST["post_is_video"];
 	$date = date("Y/m/d");
 
 	$sql = "INSERT INTO `ig_users` ";
-	$sql .= "VALUES('".$post_id."', ".$user_id.", ".$post_time.", ".$num_likes.", '".$description."', '".$location."', '".$date."') ";
+	$sql .= "VALUES('".$post_id."', ".$user_id.", ".$post_time.", ".$post_num_likes.", '".$post_description."', ".$post_is_video.", '".$date."') ";
 
 	// only update the passed values
 	$sql .= "ON DUPLICATE KEY UPDATE ";
 	
 	if( isset( $_POST["post_time"] ) )
 		$sql .= "`post_time`=".$post_time.",";
-	if( isset( $_POST["num_likes"] ) )
-		$sql .= "`num_likes`=".$num_likes.",";
-	if( isset( $_POST["description"] ) )
-		$sql .= "`description`='".$description."',";
-	if( isset( $_POST["location"] ) )
-		$sql .= "`location`='".$location."',";
+	if( isset( $_POST["post_num_likes"] ) )
+		$sql .= "`post_num_likes`=".$post_num_likes.",";
+	if( isset( $_POST["post_description"] ) )
+		$sql .= "`post_description`='".$post_description."',";
+	if( isset( $_POST["post_is_video"] ) )
+		$sql .= "`post_is_video`='".$post_is_video."',";
 	if( isset( $_POST["date"] ) )
 		$sql .= "`date`='".$date."',";
 

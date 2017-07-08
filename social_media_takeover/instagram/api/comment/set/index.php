@@ -8,10 +8,11 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["post_id"] ) && isset( $_POST["c
 	$user_id = $_POST["user_id"];
 	$post_id = $_POST["post_id"];
 	$comment_content = $_POST["comment_content"];
+	$comment_time = $_POST["comment_time"];
 	$date = date("Y/m/d");
 
 	$sql = "INSERT INTO `ig_likes` ";
-	$sql .= "VALUES('".$user_id."', '".$post_id."', '".$comment_content."', '".$date."') ";
+	$sql .= "VALUES('".$user_id."', '".$post_id."', '".$comment_content."', ".$comment_time.", '".$date."') ";
 	$sql .= "ON DUPLICATE KEY UPDATE ";
 	$sql .= "`freshness`='".$date."';";
 	
