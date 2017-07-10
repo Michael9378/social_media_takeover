@@ -23,7 +23,7 @@
 
 // Global variables
 
-var api_url = "http://socialmedia.michaeljscott.net/instagram/api";
+var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var localData;
 
 // main function for bot to run
@@ -35,7 +35,7 @@ function main() {
         // scrape user info
         case 0:
             // set next task to -1 to stop loop
-            updateUserInfo(-1);
+            updateUserInfo(0);
             break;
        // like/follow users
         case 1:
@@ -72,8 +72,8 @@ getUserFollowBase(getPageInfo(), function (result) {
 function updateUserInfo(nextTask) {
 
     // navigate to correct page
-    if (location.href.indexOf(localData.user.username) == -1) {
-        localtion.href = "https://www.instagram.com/" + localData.user.username + "/";
+    if (location.href.indexOf(localData.user.userId) == -1) {
+        location.href = "https://www.instagram.com/" + localData.user.userId + "/";
         return;
     }
 
@@ -91,10 +91,27 @@ function updateUserInfo(nextTask) {
         delete pageInfo.type;
         // set local user data
         localData.user = pageInfo;
-        // set task flag to next task
-        localData.operation.taskFlag = nextTask;
-        // save local data
-        saveLocalData(localData);
+        // save data to db
+        sendUserObjToDB(pageInfo, afterUserSentDB, function () {
+            // error
+            logEvent(1, "Local user info failed to saved to DB, trying again.");
+            sendUserObjToDB(pageInfo, afterUserSentDB, function () {
+                // error again.
+                logEvent(2, "Failed to save local user info to DB. No retry.");
+                // set task flag to next task
+                localData.operation.taskFlag = nextTask;
+                // save local data
+                saveLocalData(localData);
+            });
+        });
+
+        function afterUserSentDB() {
+            logEvent(0, "Saved local user info to DB.");
+            // set task flag to next task
+            localData.operation.taskFlag = nextTask;
+            // save local data
+            saveLocalData(localData);
+        }
         
     });
 }
@@ -223,8 +240,8 @@ function getPostPageInfo() {
         // 2 = post page
         // 3 = tag page
         postObj.type = 2;
-        postObj.id = shortCut.shortcode;
-        postObj.user = shortCut.owner.username;
+        postObj.postId = shortCut.shortcode;
+        postObj.userId = shortCut.owner.username;
         postObj.time = shortCut.taken_at_timestamp;
         postObj.description = shortCut.edge_media_to_caption.edges[0].node.text;
         postObj.isVideo = shortCut.is_video;
@@ -559,14 +576,16 @@ function logEvent(msgType, msg) {
     var timeStamp = new Date();
     switch(msgType){
         case 0:
-            console.log("Log @ " + timeStamp + ": " + msg);
+            console.log(timeStamp + ": Log \"" + msg + "\"");
             break;
         case 1:
-            console.log("Warning @ " + timeStamp + ": " + msg);
+            console.log(timeStamp + ": Warning \"" + msg + "\"");
             break;
-        case 1:
-            console.log("Error @ " + timeStamp + ": " + msg);
+        case 2:
+            console.log(timeStamp + ": Error \"" + msg + "\"");
             break;
+        default:
+            console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
     }
 }
 
@@ -604,6 +623,45 @@ function saveLocalData(data) {
     localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
 }
 
+function sendUserObjToDB(userObj, success, error) {
+    // get counts for db responses
+    var expectedReturns = 2;
+    var actualReturns = 0;
+    var errorsReturns = 0;
+
+    // save user to db first
+    userSet(userObj.userId, userObj.numPosts, userObj.numFollowers, userObj.numFollowing, userObj.profilePic, userObj.realName, userObj.bio, userObj.website, dbSuccess, dbError);
+
+    // save follow base
+    followBaseSet(userObj.userId, JSON.stringify(userObj.followerBase), dbSuccess, dbError);
+
+    // to be called after a success response from the db
+    function dbSuccess() {
+        actualReturns++;
+        if (actualReturns >= expectedReturns)
+            dbDone();
+    }
+    // to be called after an error response from the db
+    function dbError() {
+        actualReturns++;
+        errorsReturns++;
+        if (actualReturns >= expectedReturns)
+            dbDone();
+    }
+    // to be called when all calls return
+    function dbDone() {
+        // check for errors
+        if (errorsReturns > 0) {
+            logEvent(2, "sendUserObjToDB: Failed to store some user info into database. Error Responses: " + errorsReturns);
+            error();
+        }
+        else {
+            logEvent(0, "All user info and following for " + userObj.userId + " saved to db.");
+            success();
+        }
+    }
+}
+
 
 /***********************************************
 *************** AJAX Functions *****************
@@ -624,7 +682,7 @@ function botActionFollowSet(user, follows, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -644,7 +702,7 @@ function botActionFollowGet(user, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -664,7 +722,7 @@ function botActionLikeSet(user, post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -684,7 +742,7 @@ function botActionLikeGet(user, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -710,7 +768,7 @@ function userSet(user, num_posts, num_followers, num_following, profile_pic, rea
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -730,7 +788,7 @@ function userGet(user, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -749,7 +807,7 @@ function userGetMissing(limit, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -769,7 +827,28 @@ function followSet(user, follows, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
+
+function followBaseSet(user, followBase, success, error) {
+    jQuery.post({
+        url: api_url + "/follows/set/mass_set.php",
+        data: {
+            user_id: user,
+            follow_base: followBase
+        },
+        success: function (result) {
+            result = JSON.parse(result);
+            if (result)
+                success();
+            else
+                error();
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -790,7 +869,7 @@ function followGetAutoFollow(user, limit, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -811,7 +890,7 @@ function followGetAutoUnfollow(user, limit, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -836,7 +915,7 @@ function postSet(user, post, time, likes, desc, loc, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -856,7 +935,7 @@ function postGet(post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -876,7 +955,7 @@ function tagSet(tag, num_posts, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -896,7 +975,7 @@ function tagGet(tag, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -917,7 +996,7 @@ function interestSet(user, tag, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -937,7 +1016,7 @@ function interestGet(tag, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -958,7 +1037,7 @@ function likeSet(user, post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -978,7 +1057,7 @@ function likeGet(post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1000,7 +1079,7 @@ function commentSet(user, post, comment, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1020,7 +1099,7 @@ function commentGet(post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1047,7 +1126,7 @@ $.ajax({
         error();
     },
     error: function( jqXHR, textStatus, errorThrown ){
-    alert( textStatus + " " + jqXHR.status + " " + errorThrown );
+    logEvent(2,  textStatus + " " + jqXHR.status + " " + errorThrown );
     }
     }
 });
