@@ -32,9 +32,16 @@ function main() {
     localData = getLocalData();
 
     // run daily task if needed
-    if (checkAndRunDailyTasks())
-        location.reload();
+    if (checkAndRunDailyTasksTest())
         return false;
+
+    // if we got this far, we don't have daily tasks to run.
+
+    // We should have populated the db with enough users to run like/follow after the daily tasks
+    // run like/follow
+    // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
+
+    // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
 }
 
 // execute main to run bot
@@ -59,24 +66,190 @@ getUserFollowBase(getPageInfo(), function (result) {
 ***************** Bot Functions ****************
 ************************************************/
 
+function checkAndRunDailyTasksTest() {
+    savePotentialFollowsLoop(function () {
+        saveLocalData(localData);
+        alert("done");
+    });
+    return true;
+}
+
+// returns true if we are waiting for a callback to execute and reload page.
+function checkAndRunDailyTasks() {
+
+    // TODO MAKE SURE YOU SAVE LOCAL DATA BEFORE RELOADING!!!
+
+    // get current time
+    var curTime = new Date();
+    // get milliseconds in a day for comparison
+    var millisecondsInADay = 1000 * 60 * 60 * 24;
+    // if it has been less than a day since the last daily timer, then skip everything else
+    if (curTime - localData.operation.dailyTimer < millisecondsInADay)
+        return false;
+
+    /***************/
+    /* Daily Tasks */
+    /***************/
+
+    // TODO: finish daily tasks out
+
+    if (!localData.operation.flags.dailyCleared)
+        clearDailyTotals();
+
+    // scrape current user for info
+    if (localData.operation.flags.scrapeCurUser) {
+        console.log("scrapeCurUser: " + localData.operation.flags.scrapeCurUser);
+        updateCurUserInfo(localData.user.userId, function (success) {
+            if (!success) {
+                // reload page and try again
+                saveLocalData(localData);
+                location.reload();
+            }
+            else {
+                // we saved the local users info to the db.
+                // flip task to scrape tag page and reload page
+                localData.operation.flags.scrapeCurUser = 0;
+                localData.operation.flags.scrapeTagPage = 1;
+                saveLocalData(localData);
+                location.reload();
+            }
+        });
+        // return true. Let callback handle page reload
+        return true;
+    }
+
+    // scrape tag pages for top post authors and recent post authors
+    if (localData.operation.flags.scrapeTagPage) {
+        // call tag page loop
+        saveTagPageLoop(curTag, function () {
+            // function to take care of flipping flags to next task when this loop is done.
+            localData.operation.flags.scrapeTagPage = 0;
+            localData.operation.flags.findTopTagFollowing = 1;
+            saveLocalData(localData);
+            location.reload();
+        });
+
+        // Let callback handle page reload
+        return true;
+    }
+
+    // scrape top user posts for top posters usernames
+    if (localData.operation.flags.findTopTagFollowing) {
+        if (localData.operation.lists.topPostsIndex >= localData.operation.lists.topPosts.length) {
+            // were done filling in top posters info
+            localData.operation.lists.topPostsIndex = 0;
+            // flip task to scrape recent posts and reload page
+            localData.operation.flags.findTopTagFollowing = 0;
+            localData.operation.flags.findRecentTagPosters = 1;
+            saveLocalData(localData);
+            location.reload();
+            return true;
+        }
+        // TODO: fill logic to add top post to db and to add top post author to top list
+        // Let callback handle page reload
+        return true;
+    }
+
+    // scrape recent posts for interested posters usernames
+    if (localData.operation.flags.findRecentTagPosters) {
+        if (localData.operation.lists.recentPostsIndex >= localData.operation.lists.recentPosts.length) {
+            // were done filling in recent posters info
+            localData.operation.lists.recentPostsIndex = 0;
+            // flip task to scrape top authors for interested followers and reload page
+            localData.operation.flags.findRecentTagPosters = 0;
+            localData.operation.flags.scrapePotentialFollows = 1;
+            saveLocalData(localData);
+            location.reload();
+            return true;
+        }
+
+        // TODO: fill logic to add recent posts to db and to add recent post authors to list
+        // Let callback handle page reload
+        return true;
+    }
+
+    // go to potential users and scrape basic info with no follow base
+    if (localData.operation.flags.scrapePotentialFollows) {
+        savePotentialFollowsLoop(function () {
+            // flip task to like/follow users and reload page
+            localData.operation.flags.scrapePotentialFollows = 0;
+            localData.operation.flags.likeFollowUsers = 1;
+            saveLocalData(localData);
+            location.reload();
+        });
+        // TODO: fill logic to add recent posts to db and to add recent post authors to 
+        // Let callback handle page reload
+        return true;
+    }
+
+    // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
+    localData.operation.dailyTimer += millisecondsInADay;
+    localData.operation.flags.dailyCleared = 0;
+    // return false, we don't have to wait for a callback to reload the page
+    return false;
+}
+
+function clearDailyTotals() {
+
+    localData.operation.flags.dailyCleared = 1;
+    localData.operation.flags.scrapeCurUser = 1;
+    localData.operation.flags.scrapeTagPage = 0;
+    localData.operation.flags.findTopTagFollowing = 0;
+    localData.operation.flags.findRecentTagPosters = 0;
+    localData.operation.flags.scrapePotentialFollows = 0;
+    localData.operation.flags.likeFollowUsers = 0;
+
+    localData.operation.lists.topPosts = [];
+    localData.operation.lists.topPostsIndex = 0;
+    localData.operation.lists.recentPosts = [];
+    localData.operation.lists.recentPostsIndex = 0;
+
+    localData.operation.lists.topPosters = [];
+    localData.operation.lists.topPostersIndex = 0;
+    localData.operation.lists.missingUsers = [];
+    localData.operation.lists.missingUsersIndex = 0;
+
+    localData.operation.lists.followList = [];
+    localData.operation.lists.followListndex = 0;
+    localData.operation.lists.unfollowList = [];
+    localData.operation.lists.unfollowListndex = 0;
+
+    localData.operation.lists.tagIndex = 0;
+
+    localData.operation.dailyLikes = 0;
+    localData.operation.dailyFollows = 0;
+}
+
 // navigate to user page and add all their info to the database, then switch task flag to nextTask
-function updateUserInfo(user, callback) {
+function updateCurUserInfo(user, callback) {
 
     // navigate to correct page
     if (location.href.indexOf(user) == -1) {
+        saveLocalData(localData);
         location.href = "https://www.instagram.com/" + user + "/";
+        saveLocalData(localData);
         return;
     }
 
     // get the page info
     var pageInfo = getPageInfo();
     if (pageInfo == null) {
+        saveLocalData(localData);
         location.reload();
         return;
     }
 
     // scrape user follow base
     getUserFollowBase(pageInfo, function (response) {
+        // save all users in response as missing users
+        var missArr = response.following.concat(response.followers);
+        // filter duplicates
+        missArr = missArr.filter(function (item, pos) {
+            return missArr.indexOf(item) == pos;
+        });
+        // add to localData
+        localData.operation.missingUsers = missArr;
+
         pageInfo.followerBase = response;
         // remove the page type from the user object. We dont need it anymore.
         delete pageInfo.type;
@@ -101,166 +274,120 @@ function updateUserInfo(user, callback) {
             saveLocalData(localData);
             callback(true);
         }
-        
+
     });
 }
 
-function checkAndRunDailyTasks() {
+// takes a tag and saves it to the database
+function saveTagPageLoop(curTag ,flagFlipFunction) {
 
-    // TODO MAKE SURE YOU SAVE LOCAL DATA BEFORE RELOADING!!!
-
-    // get current time
-    var curTime = new Date();
-    // get milliseconds in a day for comparison
-    var millisecondsInADay = 1000 * 60 * 60 * 24;
-    // if it has been less than a day since the last daily timer, then skip
-    if (curTime - localData.operation.dailyTimer < millisecondsInADay)
-        return false;
-
-    /***************/
-    /* Daily Tasks */
-    /***************/
-    clearDailyTotals();
-
-    // scrape current user for info
-    if (data.operation.flags.scrapeCurUser) {
-        // set next task to -1 to stop loop
-        updateUserInfo(localData.user.userId, function (success) {
-            if (!success) {
-                // reload page and try again
-                location.reload();
-                return true;
-            }
-            else {
-                // we saved the local users info to the db.
-                // flip task to scrape tag page and reload page
-                data.operation.flags.scrapeCurUser = 0;
-                data.operation.flags.scrapeTagPage = 1;
-                location.reload();
-                return true;
-            }
-        });
+    // check if we are done looping
+    if (localData.operation.lists.tagIndex >= localData.user.tagInterests) {
+        // were done scraping tags.
+        localData.operation.lists.tagIndex = 0;
+        // flip task to scrape user pages and reload page
+        flagFlipFunction();
     }
 
-    // scrape tag pages for top post authors and recent post authors
-    if (data.operation.flags.scrapeTagPage) {
-        if (data.operation.lists.tagIndex >= data.user.tagInterests) {
-            // were done scraping tags.
-            data.operation.lists.tagIndex = 0;
-            // flip task to scrape user pages and reload page
-            data.operation.flags.scrapeTagPage = 0;
-            data.operation.flags.findTopTagFollowing = 1;
-            location.reload();
-            return true;
-        }
-        var curTag = data.user.tagInterests[data.operation.lists.tagIndex];
-        if (location.href.indexOf(curTag) == -1) {
-            // not at the right location. Navigate.
-            location.href = "https://www.instagram.com/explore/tags/" + curTag + "/";
-            return true;
-        }
-        var pageInfo = getPageInfo();
-        // add tag to database
-        tagSet(pageInfo.name, pageInfo.numPosts, function () {
-            // success
-            logEvent(0, "Saved " + pageInfo.name + " to database.");
-            data.operation.lists.topPosts = pageInfo.topPosts;
-            data.operation.lists.recentPosts = pageInfo.recentPosts;
-
-            // attach current tag to posts
-            for (var i = 0; i < data.operation.lists.topPosts.length; i++)
-                data.operation.lists.topPosts[i].tagInterest = curTag;
-            for (var i = 0; i < data.operation.lists.recentPosts.length; i++)
-                data.operation.lists.recentPosts[i].tagInterest = curTag;
-            // increment index and reload page. Check for out of bounds index is at beginning of function
-            data.operation.lists.tagIndex++;
-            location.reload();
-            return false;
-
-        }, function () {
-            // error
-            logEvent(2, "Failed to save " + pageInfo.name + " to database. Skipping.");
-            // skip tag and move on
-            data.operation.lists.tagIndex++;
-            location.reload();
-            return false;
-        });
+    // save the current tag to the database
+    var curTag = localData.user.tagInterests[localData.operation.lists.tagIndex];
+    // check we are on the right page
+    if (location.href.indexOf(curTag) == -1) {
+        // not at the right location. Navigate.
+        location.href = "https://www.instagram.com/explore/tags/" + curTag + "/";
+        saveLocalData(localData);
+        return;
     }
+    var pageInfo = getPageInfo();
+    // add tag to database
+    tagSet(pageInfo.name, pageInfo.numPosts, function () {
+        // success
+        logEvent(0, "Saved " + pageInfo.name + " to database.");
+        localData.operation.lists.topPosts = pageInfo.topPosts;
+        localData.operation.lists.recentPosts = pageInfo.recentPosts;
 
-    // scrape top user posts for top posters usernames
-    if (data.operation.flags.findTopTagFollowing) {
-        if (data.operation.lists.topPostsIndex >= data.operation.lists.topPosts.length) {
-            // were done filling in top posters info
-            data.operation.lists.topPostsIndex = 0;
-            // flip task to scrape recent posts and reload page
-            data.operation.flags.findTopTagFollowing = 0;
-            data.operation.flags.findRecentTagPosters = 1;
-            location.reload();
-            return true;
-        }
-        // TODO: fill logic to add top post to db and to add top post author to top list
-    }
+        // attach current tag to posts
+        for (var i = 0; i < localData.operation.lists.topPosts.length; i++)
+            localData.operation.lists.topPosts[i].tagInterest = curTag;
+        for (var i = 0; i < localData.operation.lists.recentPosts.length; i++)
+            localData.operation.lists.recentPosts[i].tagInterest = curTag;
+        // increment index and reload page. Check for out of bounds index is at beginning of function
+        localData.operation.lists.tagIndex++;
+        saveLocalData(localData);
+        location.reload();
 
-    // scrape recent posts for interested posters usernames
-    if (data.operation.flags.findRecentTagPosters) {
-        if (data.operation.lists.recentPostsIndex >= data.operation.lists.recentPosts.length) {
-            // were done filling in recent posters info
-            data.operation.lists.recentPostsIndex = 0;
-            // flip task to scrape top authors for interested followers and reload page
-            data.operation.flags.findRecentTagPosters = 0;
-            data.operation.flags.scrapePotentialFollows = 1;
-            location.reload();
-            return true;
-        }
-        // TODO: fill logic to add recent posts to db and to add recent post authors to list
-    }
-
-    // go to potential users and scrape basic info with no follow base
-    if (data.operation.flags.scrapePotentialFollows) {
-        if (data.operation.lists.missingUsersIndex >= data.operation.lists.missingUsers.length) {
-            // were done filling in potential follows info
-            data.operation.lists.missingUsersIndex = 0;
-            // flip task to like/follow users and reload page
-            data.operation.flags.scrapePotentialFollows = 0;
-            data.operation.flags.likeFollowUsers = 1;
-            location.reload();
-            return true;
-        }
-        // TODO: fill logic to add recent posts to db and to add recent post authors to list
-    }
-
-    // when we are all done with daily tasks, update the dailyTimer
-    localData.operation.dailyTimer += millisecondsInADay;
+    }, function () {
+        // error
+        logEvent(2, "Failed to save " + pageInfo.name + " to database. Skipping.");
+        // skip tag and move on
+        localData.operation.lists.tagIndex++;
+        saveLocalData(localData);
+        location.reload();
+    }); 
 }
 
-function clearDailyTotals() {
+// takes a potential follower and saves them to the database
+function savePotentialFollowsLoop(flagFlipFunction) {
 
-    data.operation.flags.scrapeCurUser = 1;
-    data.operation.flags.scrapeTagPage = 0;
-    data.operation.flags.findTopTagFollowing = 0;
-    data.operation.flags.findRecentTagPosters = 0;
-    data.operation.flags.scrapePotentialFollows = 0;
-    data.operation.flags.likeFollowUsers = 0;
+    // make sure we have users to scrape
+    if (localData.operation.lists.missingUsers.length == 0) {
+        // we haven't filled out missingUsers array yet. Lets take care of that before moving on.
+        userGetMissing(2000, function (response) {
+            // success
+            localData.operation.lists.missingUsers = response;
+            // reload page to start loop back at beginning.
+            // Not necessary but keeps code clean.
+            saveLocalData(localData);
+            location.reload();
+        }, function () {
+            // error
+            logEvent(2, "Daily Tasks: Couldn't get list of missing users.");
+            saveLocalData(localData);
+            location.reload();
+            return true;
+        });
+    }
+    // check if we reached the end of the array of missing people
+    if (localData.operation.lists.missingUsersIndex >= localData.operation.lists.missingUsers.length) {
+        // were done filling in potential follows info
+        localData.operation.lists.missingUsersIndex = 0;
+        flagFlipFunction();
+    }
 
-    data.operation.lists.topPosts = [];
-    data.operation.lists.topPostsIndex = 0;
-    data.operation.lists.recentPosts = [];
-    data.operation.lists.recentPostsIndex = 0;
+    // save the current missing user to the database
+    var curMissUser = localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id;
+    // check we are on the right page
+    if (location.href.indexOf(curMissUser) == -1) {
+        // not at the right location. Navigate.
+        saveLocalData(localData);
+        location.href = "https://www.instagram.com/" + curMissUser + "/";
+        return;
+    }
 
-    data.operation.lists.topPosters = [];
-    data.operation.lists.topPostersIndex = 0;
-    data.operation.lists.missingUsers = [];
-    data.operation.lists.missingUsersIndex = 0;
+    var pageInfo = getPageInfo();
+    if (pageInfo == null) {
+        location.reload();
+        return;
+    }
 
-    data.operation.lists.followList = [];
-    data.operation.lists.followListndex = 0;
-    data.operation.lists.unfollowList = [];
-    data.operation.lists.unfollowListndex = 0;
+    // add tag to database
+    userSet(pageInfo.userId, pageInfo.numPosts, pageInfo.numFollowers, pageInfo.numFollowing, pageInfo.profilePic, pageInfo.realName, pageInfo.bio, pageInfo.website, function () {
+        // success
+        logEvent(0, "Saved " + pageInfo.userId + " to database.");
 
-    data.operation.lists.tagIndex = 0;
+        // increment index and reload page. Check for out of bounds index is at beginning of function
+        localData.operation.lists.missingUsersIndex++;
+        saveLocalData(localData);
+        location.reload();
 
-    data.operation.dailyLikes = 0;
-    data.operation.dailyFollows = 0;
+    }, function () {
+        // error
+        logEvent(2, "Failed to save " + pageInfo.userId + " to database. Skipping.");
+        // skip tag and move on
+        localData.operation.lists.missingUsersIndex++;
+        saveLocalData(localData);
+        location.reload();
+    });
 }
 
 
@@ -404,6 +531,9 @@ function getPostPageInfo() {
 
 // scrapes tag page for all relevant info and returns in formatted object
 function getTagPageInfo() {
+
+    // TODO: Add similar tag relationship and label tags of this post as a hit to the similars.
+    // Update auto follows to order by how far their follow base differs from mean
 
     if (typeof unsafeWindow._sharedData.entry_data.TagPage == "undefined") {
         logEvent(1, "getTagPageInfo: Instagram shared TagPage data wasn't loaded.");
@@ -779,6 +909,7 @@ function getLocalData() {
         data.operation.dailyFollows = 0;
         data.operation.globalLikes = 0;
         data.operation.globalFollows = 0;
+        data.operation.nextPage = "";
 
         localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
     }
