@@ -123,3 +123,24 @@ CREATE TABLE ig_botaction_like
 	action_date DATE,
 	PRIMARY KEY(post_id, user_id)
 );
+
+/*
+CREATE OR REPLACE VIEW ig_user_avgs AS
+	SELECT ROUND(AVG(`user_num_posts`)) AS `posts`, ROUND(AVG(`user_num_followers`)) AS `followers`, ROUND(AVG(`user_num_following`)) AS `following` 
+	FROM `ig_users`
+	WHERE `ig_users`.`user_id` IN (
+		SELECT `user_id` FROM `ig_follows` WHERE `follows_user_id` = 'dirtkingdom'
+		);
+
+CREATE OR REPLACE VIEW ig_user_stats AS
+	SELECT `user_id`,`user_num_posts`,`user_num_followers`,`user_num_following`,
+	ABS(`user_num_followers` - `followers`) AS `followers_dev`, 
+	ABS(`user_num_following` - `following`) AS `following_dev`,
+	(ABS(`user_num_followers` - `followers`) + ABS(`user_num_following` - `following`)) AS `dev_rating`
+	FROM `ig_users`, `ig_user_avgs` 
+	WHERE `user_id` IN (
+		SELECT `user_id` FROM `ig_follows` WHERE `follows_user_id` = 'dirtkingdom'
+	) AND `user_num_following` < 2000
+	AND `user_num_followers` < 2000
+	ORDER BY (`dev_rating`) ASC;
+*/
