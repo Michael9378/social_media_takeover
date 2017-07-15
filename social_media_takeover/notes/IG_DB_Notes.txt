@@ -1,3 +1,9 @@
+SELECT u2.user_id, AVG(u1.user_num_fings) as fings_avg
+FROM user as u1, user as u2
+WHERE u1.user_id IN 
+	(SELECT fings.user_id FROM fings WHERE fings_fers = u2.user_id)
+GROUP BY u2.user_id;
+
 ========================
 
 Tables
