@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS ig_user_tag_interest;
 DROP TABLE IF EXISTS ig_tagged_in_post;
 DROP TABLE IF EXISTS ig_botaction_follow;
 DROP TABLE IF EXISTS ig_botaction_like;
+DROP TABLE IF EXISTS ig_log;
 
 CREATE TABLE ig_users
 (
@@ -124,6 +125,14 @@ CREATE TABLE ig_botaction_like
 	PRIMARY KEY(post_id, user_id)
 );
 
+CREATE TABLE ig_log
+(
+	log_time DATE,
+	log_type VARCHAR(10),
+	log_msg VARCHAR(200),
+	PRIMARY KEY(log_time, log_msg)
+);
+
 /*
 CREATE OR REPLACE VIEW ig_user_avgs AS
 	SELECT ROUND(AVG(`user_num_posts`)) AS `posts`, ROUND(AVG(`user_num_followers`)) AS `followers`, ROUND(AVG(`user_num_following`)) AS `following` 
@@ -134,13 +143,14 @@ CREATE OR REPLACE VIEW ig_user_avgs AS
 
 CREATE OR REPLACE VIEW ig_user_stats AS
 	SELECT `user_id`,`user_num_posts`,`user_num_followers`,`user_num_following`,
+	ROUND((`user_num_followers` / `user_num_following`) * (ABS(`user_num_followers` - `followers`) + ABS(`user_num_following` - `following`))) AS `auto_follow_rating`,
+	(ABS(`user_num_followers` - `followers`) + ABS(`user_num_following` - `following`)) AS `dev_rating`,
 	ABS(`user_num_followers` - `followers`) AS `followers_dev`, 
-	ABS(`user_num_following` - `following`) AS `following_dev`,
-	(ABS(`user_num_followers` - `followers`) + ABS(`user_num_following` - `following`)) AS `dev_rating`
+	ABS(`user_num_following` - `following`) AS `following_dev`
 	FROM `ig_users`, `ig_user_avgs` 
 	WHERE `user_id` IN (
 		SELECT `user_id` FROM `ig_follows` WHERE `follows_user_id` = 'dirtkingdom'
 	) AND `user_num_following` < 2000
 	AND `user_num_followers` < 2000
-	ORDER BY (`dev_rating`) ASC;
+	ORDER BY (`auto_follow_rating`) ASC;
 */

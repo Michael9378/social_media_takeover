@@ -664,11 +664,14 @@ function getUserFollowBaseHelper(userObj, followFlag, results, callback) {
         else
             container = $(getElementsByHtml("div", "Following")[0]).parent().find("ul").parent();
 
-        var expectedSize = 2000;
+        var expectedSize = 1000;
         if (followFlag == 0)
             expectedSize = userObj.numFollowers;
         else
             expectedSize = userObj.numFollowing;
+
+        if (expectedSize > 1000)
+            expectedSize = 1000;
 
         scrollBottom(container, expectedSize, 0, 0, 0, function () {
 
@@ -847,7 +850,7 @@ function getElementsLikeHtml(selector, match_string) {
 }
 
 // update this to log errors in the future. msgTypes 0 for success, 1 for warning, 2 for error
-function logEvent(msgType, msg) {
+function logEvent(msgType, msg, callback) {
     // update this to store logs in the database in the future.
     // update to send errors via email to track problems
     var timeStamp = new Date();
@@ -857,13 +860,17 @@ function logEvent(msgType, msg) {
             break;
         case 1:
             console.log(timeStamp + ": Warning \"" + msg + "\"");
+            localData.operation.errorLog.Add(timeStamp + ": Warning \"" + msg + "\"");
             break;
         case 2:
             console.log(timeStamp + ": Error \"" + msg + "\"");
+            localData.operation.errorLog.Add(timeStamp + ": Error \"" + msg + "\"");
             break;
         default:
             console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
+            localData.operation.errorLog.Add(timeStamp + ": Unknown Message Type \"" + msg + "\"");
     }
+    setLog(timeStamp.getTime(), msgType, msg);
 }
 
 // returns either the local storage item or defaults to a new localData object
@@ -905,6 +912,7 @@ function getLocalData() {
         data.operation.lists.unfollowList = [];
         data.operation.lists.unfollowListndex = 0;
         // other operational needs
+        data.operation.errorLog = [];
         data.operation.dailyLikes = 0;
         data.operation.dailyFollows = 0;
         data.operation.globalLikes = 0;
@@ -983,7 +991,7 @@ function botActionFollowSet(user, follows, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1003,7 +1011,7 @@ function botActionFollowGet(user, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -1023,7 +1031,7 @@ function botActionLikeSet(user, post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1043,7 +1051,7 @@ function botActionLikeGet(user, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -1069,7 +1077,7 @@ function userSet(user, num_posts, num_followers, num_following, profile_pic, rea
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1089,7 +1097,7 @@ function userGet(user, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -1108,7 +1116,7 @@ function userGetMissing(limit, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -1128,7 +1136,7 @@ function followSet(user, follows, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1149,7 +1157,7 @@ function followBaseSet(user, followBase, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1170,7 +1178,7 @@ function followGetAutoFollow(user, limit, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1191,7 +1199,7 @@ function followGetAutoUnfollow(user, limit, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1216,7 +1224,7 @@ function postSet(user, post, time, likes, desc, loc, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1236,7 +1244,7 @@ function postGet(post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }
@@ -1256,7 +1264,7 @@ function tagSet(tag, num_posts, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1276,7 +1284,7 @@ function tagGet(tag, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1297,7 +1305,7 @@ function interestSet(user, tag, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1317,7 +1325,7 @@ function interestGet(tag, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1338,7 +1346,7 @@ function likeSet(user, post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1358,7 +1366,7 @@ function likeGet(post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1380,7 +1388,7 @@ function commentSet(user, post, comment, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
         }
     });
@@ -1400,8 +1408,30 @@ function commentGet(post, success, error) {
                 error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
+        }
+    });
+}
+
+function setLog(timestamp, logType, log) {
+    jQuery.post({
+        url: api_url + "/log/set/",
+        data: {
+            log_time: timestamp,
+            log_type: logType,
+            log: log
+        },
+        success: function (result) {
+            result = JSON.parse(result);
+            if (!result) {
+                console.log(timeStamp + ": Error \"" + msg + "\"");
+                localData.operation.errorLog.Add(timeStamp + ": Error \"Unable to save log to database.\"");
+            }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            console.log(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
+            localData.operation.errorLog.Add(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
         }
     });
 }
