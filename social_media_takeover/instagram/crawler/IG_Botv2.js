@@ -349,12 +349,6 @@ function saveTagPageLoop(flagFlipFunction) {
                     // TODO: Save this as a tag object you fkn dingus
                     logEvent(0, "Saved " + pageInfo.name + " to database.");
                     localData.operation.lists.tagPages.push(pageInfo);
-
-                    // attach current tag to posts
-                    for (var i = 0; i < localData.operation.lists.topPosts.length; i++)
-                        localData.operation.lists.topPosts[i].tagInterest = curTag;
-                    for (var i = 0; i < localData.operation.lists.recentPosts.length; i++)
-                        localData.operation.lists.recentPosts[i].tagInterest = curTag;
                     // increment index and reload page. Check for out of bounds index is at beginning of function
                     localData.user.tagInterestsIndex++;
                     saveLocalData(localData);
