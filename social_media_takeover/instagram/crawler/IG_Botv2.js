@@ -20,6 +20,10 @@
     }), ib = { set: function (a, b, c) { return b === !1 ? r.removeAttr(a, c) : a.setAttribute(c, c), c } }, r.each(r.expr.match.bool.source.match(/\w+/g), function (a, b) { var c = jb[b] || r.find.attr; jb[b] = function (a, b, d) { var e, f, g = b.toLowerCase(); return d || (f = jb[g], jb[g] = e, e = null != c(a, b, d) ? g : null, jb[g] = f), e } }); var kb = /^(?:input|select|textarea|button)$/i, lb = /^(?:a|area)$/i; r.fn.extend({ prop: function (a, b) { return S(this, r.prop, a, b, arguments.length > 1) }, removeProp: function (a) { return this.each(function () { delete this[r.propFix[a] || a] }) } }), r.extend({ prop: function (a, b, c) { var d, e, f = a.nodeType; if (3 !== f && 8 !== f && 2 !== f) return 1 === f && r.isXMLDoc(a) || (b = r.propFix[b] || b, e = r.propHooks[b]), void 0 !== c ? e && "set" in e && void 0 !== (d = e.set(a, c, b)) ? d : a[b] = c : e && "get" in e && null !== (d = e.get(a, b)) ? d : a[b] }, propHooks: { tabIndex: { get: function (a) { var b = r.find.attr(a, "tabindex"); return b ? parseInt(b, 10) : kb.test(a.nodeName) || lb.test(a.nodeName) && a.href ? 0 : -1 } } }, propFix: { "for": "htmlFor", "class": "className" } }), o.optSelected || (r.propHooks.selected = { get: function (a) { var b = a.parentNode; return b && b.parentNode && b.parentNode.selectedIndex, null }, set: function (a) { var b = a.parentNode; b && (b.selectedIndex, b.parentNode && b.parentNode.selectedIndex) } }), r.each(["tabIndex", "readOnly", "maxLength", "cellSpacing", "cellPadding", "rowSpan", "colSpan", "useMap", "frameBorder", "contentEditable"], function () { r.propFix[this.toLowerCase()] = this }); function mb(a) { var b = a.match(K) || []; return b.join(" ") } function nb(a) { return a.getAttribute && a.getAttribute("class") || "" } r.fn.extend({ addClass: function (a) { var b, c, d, e, f, g, h, i = 0; if (r.isFunction(a)) return this.each(function (b) { r(this).addClass(a.call(this, b, nb(this))) }); if ("string" == typeof a && a) { b = a.match(K) || []; while (c = this[i++]) if (e = nb(c), d = 1 === c.nodeType && " " + mb(e) + " ") { g = 0; while (f = b[g++]) d.indexOf(" " + f + " ") < 0 && (d += f + " "); h = mb(d), e !== h && c.setAttribute("class", h) } } return this }, removeClass: function (a) { var b, c, d, e, f, g, h, i = 0; if (r.isFunction(a)) return this.each(function (b) { r(this).removeClass(a.call(this, b, nb(this))) }); if (!arguments.length) return this.attr("class", ""); if ("string" == typeof a && a) { b = a.match(K) || []; while (c = this[i++]) if (e = nb(c), d = 1 === c.nodeType && " " + mb(e) + " ") { g = 0; while (f = b[g++]) while (d.indexOf(" " + f + " ") > -1) d = d.replace(" " + f + " ", " "); h = mb(d), e !== h && c.setAttribute("class", h) } } return this }, toggleClass: function (a, b) { var c = typeof a; return "boolean" == typeof b && "string" === c ? b ? this.addClass(a) : this.removeClass(a) : r.isFunction(a) ? this.each(function (c) { r(this).toggleClass(a.call(this, c, nb(this), b), b) }) : this.each(function () { var b, d, e, f; if ("string" === c) { d = 0, e = r(this), f = a.match(K) || []; while (b = f[d++]) e.hasClass(b) ? e.removeClass(b) : e.addClass(b) } else void 0 !== a && "boolean" !== c || (b = nb(this), b && V.set(this, "__className__", b), this.setAttribute && this.setAttribute("class", b || a === !1 ? "" : V.get(this, "__className__") || "")) }) }, hasClass: function (a) { var b, c, d = 0; b = " " + a + " "; while (c = this[d++]) if (1 === c.nodeType && (" " + mb(nb(c)) + " ").indexOf(b) > -1) return !0; return !1 } }); var ob = /\r/g; r.fn.extend({ val: function (a) { var b, c, d, e = this[0]; { if (arguments.length) return d = r.isFunction(a), this.each(function (c) { var e; 1 === this.nodeType && (e = d ? a.call(this, c, r(this).val()) : a, null == e ? e = "" : "number" == typeof e ? e += "" : r.isArray(e) && (e = r.map(e, function (a) { return null == a ? "" : a + "" })), b = r.valHooks[this.type] || r.valHooks[this.nodeName.toLowerCase()], b && "set" in b && void 0 !== b.set(this, e, "value") || (this.value = e)) }); if (e) return b = r.valHooks[e.type] || r.valHooks[e.nodeName.toLowerCase()], b && "get" in b && void 0 !== (c = b.get(e, "value")) ? c : (c = e.value, "string" == typeof c ? c.replace(ob, "") : null == c ? "" : c) } } }), r.extend({ valHooks: { option: { get: function (a) { var b = r.find.attr(a, "value"); return null != b ? b : mb(r.text(a)) } }, select: { get: function (a) { var b, c, d, e = a.options, f = a.selectedIndex, g = "select-one" === a.type, h = g ? null : [], i = g ? f + 1 : e.length; for (d = f < 0 ? i : g ? f : 0; d < i; d++) if (c = e[d], (c.selected || d === f) && !c.disabled && (!c.parentNode.disabled || !r.nodeName(c.parentNode, "optgroup"))) { if (b = r(c).val(), g) return b; h.push(b) } return h }, set: function (a, b) { var c, d, e = a.options, f = r.makeArray(b), g = e.length; while (g--) d = e[g], (d.selected = r.inArray(r.valHooks.option.get(d), f) > -1) && (c = !0); return c || (a.selectedIndex = -1), f } } } }), r.each(["radio", "checkbox"], function () { r.valHooks[this] = { set: function (a, b) { if (r.isArray(b)) return a.checked = r.inArray(r(a).val(), b) > -1 } }, o.checkOn || (r.valHooks[this].get = function (a) { return null === a.getAttribute("value") ? "on" : a.value }) }); var pb = /^(?:focusinfocus|focusoutblur)$/; r.extend(r.event, { trigger: function (b, c, e, f) { var g, h, i, j, k, m, n, o = [e || d], p = l.call(b, "type") ? b.type : b, q = l.call(b, "namespace") ? b.namespace.split(".") : []; if (h = i = e = e || d, 3 !== e.nodeType && 8 !== e.nodeType && !pb.test(p + r.event.triggered) && (p.indexOf(".") > -1 && (q = p.split("."), p = q.shift(), q.sort()), k = p.indexOf(":") < 0 && "on" + p, b = b[r.expando] ? b : new r.Event(p, "object" == typeof b && b), b.isTrigger = f ? 2 : 3, b.namespace = q.join("."), b.rnamespace = b.namespace ? new RegExp("(^|\\.)" + q.join("\\.(?:.*\\.|)") + "(\\.|$)") : null, b.result = void 0, b.target || (b.target = e), c = null == c ? [b] : r.makeArray(c, [b]), n = r.event.special[p] || {}, f || !n.trigger || n.trigger.apply(e, c) !== !1)) { if (!f && !n.noBubble && !r.isWindow(e)) { for (j = n.delegateType || p, pb.test(j + p) || (h = h.parentNode) ; h; h = h.parentNode) o.push(h), i = h; i === (e.ownerDocument || d) && o.push(i.defaultView || i.parentWindow || a) } g = 0; while ((h = o[g++]) && !b.isPropagationStopped()) b.type = g > 1 ? j : n.bindType || p, m = (V.get(h, "events") || {})[b.type] && V.get(h, "handle"), m && m.apply(h, c), m = k && h[k], m && m.apply && T(h) && (b.result = m.apply(h, c), b.result === !1 && b.preventDefault()); return b.type = p, f || b.isDefaultPrevented() || n._default && n._default.apply(o.pop(), c) !== !1 || !T(e) || k && r.isFunction(e[p]) && !r.isWindow(e) && (i = e[k], i && (e[k] = null), r.event.triggered = p, e[p](), r.event.triggered = void 0, i && (e[k] = i)), b.result } }, simulate: function (a, b, c) { var d = r.extend(new r.Event, c, { type: a, isSimulated: !0 }); r.event.trigger(d, null, b) } }), r.fn.extend({ trigger: function (a, b) { return this.each(function () { r.event.trigger(a, b, this) }) }, triggerHandler: function (a, b) { var c = this[0]; if (c) return r.event.trigger(a, b, c, !0) } }), r.each("blur focus focusin focusout resize scroll click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select submit keydown keypress keyup contextmenu".split(" "), function (a, b) { r.fn[b] = function (a, c) { return arguments.length > 0 ? this.on(b, null, a, c) : this.trigger(b) } }), r.fn.extend({ hover: function (a, b) { return this.mouseenter(a).mouseleave(b || a) } }), o.focusin = "onfocusin" in a, o.focusin || r.each({ focus: "focusin", blur: "focusout" }, function (a, b) { var c = function (a) { r.event.simulate(b, a.target, r.event.fix(a)) }; r.event.special[b] = { setup: function () { var d = this.ownerDocument || this, e = V.access(d, b); e || d.addEventListener(a, c, !0), V.access(d, b, (e || 0) + 1) }, teardown: function () { var d = this.ownerDocument || this, e = V.access(d, b) - 1; e ? V.access(d, b, e) : (d.removeEventListener(a, c, !0), V.remove(d, b)) } } }); var qb = a.location, rb = r.now(), sb = /\?/; r.parseXML = function (b) { var c; if (!b || "string" != typeof b) return null; try { c = (new a.DOMParser).parseFromString(b, "text/xml") } catch (d) { c = void 0 } return c && !c.getElementsByTagName("parsererror").length || r.error("Invalid XML: " + b), c }; var tb = /\[\]$/, ub = /\r?\n/g, vb = /^(?:submit|button|image|reset|file)$/i, wb = /^(?:input|select|textarea|keygen)/i; function xb(a, b, c, d) { var e; if (r.isArray(b)) r.each(b, function (b, e) { c || tb.test(a) ? d(a, e) : xb(a + "[" + ("object" == typeof e && null != e ? b : "") + "]", e, c, d) }); else if (c || "object" !== r.type(b)) d(a, b); else for (e in b) xb(a + "[" + e + "]", b[e], c, d) } r.param = function (a, b) { var c, d = [], e = function (a, b) { var c = r.isFunction(b) ? b() : b; d[d.length] = encodeURIComponent(a) + "=" + encodeURIComponent(null == c ? "" : c) }; if (r.isArray(a) || a.jquery && !r.isPlainObject(a)) r.each(a, function () { e(this.name, this.value) }); else for (c in a) xb(c, a[c], b, e); return d.join("&") }, r.fn.extend({ serialize: function () { return r.param(this.serializeArray()) }, serializeArray: function () { return this.map(function () { var a = r.prop(this, "elements"); return a ? r.makeArray(a) : this }).filter(function () { var a = this.type; return this.name && !r(this).is(":disabled") && wb.test(this.nodeName) && !vb.test(a) && (this.checked || !ia.test(a)) }).map(function (a, b) { var c = r(this).val(); return null == c ? null : r.isArray(c) ? r.map(c, function (a) { return { name: b.name, value: a.replace(ub, "\r\n") } }) : { name: b.name, value: c.replace(ub, "\r\n") } }).get() } }); var yb = /%20/g, zb = /#.*$/, Ab = /([?&])_=[^&]*/, Bb = /^(.*?):[ \t]*([^\r\n]*)$/gm, Cb = /^(?:about|app|app-storage|.+-extension|file|res|widget):$/, Db = /^(?:GET|HEAD)$/, Eb = /^\/\//, Fb = {}, Gb = {}, Hb = "*/".concat("*"), Ib = d.createElement("a"); Ib.href = qb.href; function Jb(a) { return function (b, c) { "string" != typeof b && (c = b, b = "*"); var d, e = 0, f = b.toLowerCase().match(K) || []; if (r.isFunction(c)) while (d = f[e++]) "+" === d[0] ? (d = d.slice(1) || "*", (a[d] = a[d] || []).unshift(c)) : (a[d] = a[d] || []).push(c) } } function Kb(a, b, c, d) { var e = {}, f = a === Gb; function g(h) { var i; return e[h] = !0, r.each(a[h] || [], function (a, h) { var j = h(b, c, d); return "string" != typeof j || f || e[j] ? f ? !(i = j) : void 0 : (b.dataTypes.unshift(j), g(j), !1) }), i } return g(b.dataTypes[0]) || !e["*"] && g("*") } function Lb(a, b) { var c, d, e = r.ajaxSettings.flatOptions || {}; for (c in b) void 0 !== b[c] && ((e[c] ? a : d || (d = {}))[c] = b[c]); return d && r.extend(!0, a, d), a } function Mb(a, b, c) { var d, e, f, g, h = a.contents, i = a.dataTypes; while ("*" === i[0]) i.shift(), void 0 === d && (d = a.mimeType || b.getResponseHeader("Content-Type")); if (d) for (e in h) if (h[e] && h[e].test(d)) { i.unshift(e); break } if (i[0] in c) f = i[0]; else { for (e in c) { if (!i[0] || a.converters[e + " " + i[0]]) { f = e; break } g || (g = e) } f = f || g } if (f) return f !== i[0] && i.unshift(f), c[f] } function Nb(a, b, c, d) { var e, f, g, h, i, j = {}, k = a.dataTypes.slice(); if (k[1]) for (g in a.converters) j[g.toLowerCase()] = a.converters[g]; f = k.shift(); while (f) if (a.responseFields[f] && (c[a.responseFields[f]] = b), !i && d && a.dataFilter && (b = a.dataFilter(b, a.dataType)), i = f, f = k.shift()) if ("*" === f) f = i; else if ("*" !== i && i !== f) { if (g = j[i + " " + f] || j["* " + f], !g) for (e in j) if (h = e.split(" "), h[1] === f && (g = j[i + " " + h[0]] || j["* " + h[0]])) { g === !0 ? g = j[e] : j[e] !== !0 && (f = h[0], k.unshift(h[1])); break } if (g !== !0) if (g && a["throws"]) b = g(b); else try { b = g(b) } catch (l) { return { state: "parsererror", error: g ? l : "No conversion from " + i + " to " + f } } } return { state: "success", data: b } } r.extend({ active: 0, lastModified: {}, etag: {}, ajaxSettings: { url: qb.href, type: "GET", isLocal: Cb.test(qb.protocol), global: !0, processData: !0, async: !0, contentType: "application/x-www-form-urlencoded; charset=UTF-8", accepts: { "*": Hb, text: "text/plain", html: "text/html", xml: "application/xml, text/xml", json: "application/json, text/javascript" }, contents: { xml: /\bxml\b/, html: /\bhtml/, json: /\bjson\b/ }, responseFields: { xml: "responseXML", text: "responseText", json: "responseJSON" }, converters: { "* text": String, "text html": !0, "text json": JSON.parse, "text xml": r.parseXML }, flatOptions: { url: !0, context: !0 } }, ajaxSetup: function (a, b) { return b ? Lb(Lb(a, r.ajaxSettings), b) : Lb(r.ajaxSettings, a) }, ajaxPrefilter: Jb(Fb), ajaxTransport: Jb(Gb), ajax: function (b, c) { "object" == typeof b && (c = b, b = void 0), c = c || {}; var e, f, g, h, i, j, k, l, m, n, o = r.ajaxSetup({}, c), p = o.context || o, q = o.context && (p.nodeType || p.jquery) ? r(p) : r.event, s = r.Deferred(), t = r.Callbacks("once memory"), u = o.statusCode || {}, v = {}, w = {}, x = "canceled", y = { readyState: 0, getResponseHeader: function (a) { var b; if (k) { if (!h) { h = {}; while (b = Bb.exec(g)) h[b[1].toLowerCase()] = b[2] } b = h[a.toLowerCase()] } return null == b ? null : b }, getAllResponseHeaders: function () { return k ? g : null }, setRequestHeader: function (a, b) { return null == k && (a = w[a.toLowerCase()] = w[a.toLowerCase()] || a, v[a] = b), this }, overrideMimeType: function (a) { return null == k && (o.mimeType = a), this }, statusCode: function (a) { var b; if (a) if (k) y.always(a[y.status]); else for (b in a) u[b] = [u[b], a[b]]; return this }, abort: function (a) { var b = a || x; return e && e.abort(b), A(0, b), this } }; if (s.promise(y), o.url = ((b || o.url || qb.href) + "").replace(Eb, qb.protocol + "//"), o.type = c.method || c.type || o.method || o.type, o.dataTypes = (o.dataType || "*").toLowerCase().match(K) || [""], null == o.crossDomain) { j = d.createElement("a"); try { j.href = o.url, j.href = j.href, o.crossDomain = Ib.protocol + "//" + Ib.host != j.protocol + "//" + j.host } catch (z) { o.crossDomain = !0 } } if (o.data && o.processData && "string" != typeof o.data && (o.data = r.param(o.data, o.traditional)), Kb(Fb, o, c, y), k) return y; l = r.event && o.global, l && 0 === r.active++ && r.event.trigger("ajaxStart"), o.type = o.type.toUpperCase(), o.hasContent = !Db.test(o.type), f = o.url.replace(zb, ""), o.hasContent ? o.data && o.processData && 0 === (o.contentType || "").indexOf("application/x-www-form-urlencoded") && (o.data = o.data.replace(yb, "+")) : (n = o.url.slice(f.length), o.data && (f += (sb.test(f) ? "&" : "?") + o.data, delete o.data), o.cache === !1 && (f = f.replace(Ab, "$1"), n = (sb.test(f) ? "&" : "?") + "_=" + rb++ + n), o.url = f + n), o.ifModified && (r.lastModified[f] && y.setRequestHeader("If-Modified-Since", r.lastModified[f]), r.etag[f] && y.setRequestHeader("If-None-Match", r.etag[f])), (o.data && o.hasContent && o.contentType !== !1 || c.contentType) && y.setRequestHeader("Content-Type", o.contentType), y.setRequestHeader("Accept", o.dataTypes[0] && o.accepts[o.dataTypes[0]] ? o.accepts[o.dataTypes[0]] + ("*" !== o.dataTypes[0] ? ", " + Hb + "; q=0.01" : "") : o.accepts["*"]); for (m in o.headers) y.setRequestHeader(m, o.headers[m]); if (o.beforeSend && (o.beforeSend.call(p, y, o) === !1 || k)) return y.abort(); if (x = "abort", t.add(o.complete), y.done(o.success), y.fail(o.error), e = Kb(Gb, o, c, y)) { if (y.readyState = 1, l && q.trigger("ajaxSend", [y, o]), k) return y; o.async && o.timeout > 0 && (i = a.setTimeout(function () { y.abort("timeout") }, o.timeout)); try { k = !1, e.send(v, A) } catch (z) { if (k) throw z; A(-1, z) } } else A(-1, "No Transport"); function A(b, c, d, h) { var j, m, n, v, w, x = c; k || (k = !0, i && a.clearTimeout(i), e = void 0, g = h || "", y.readyState = b > 0 ? 4 : 0, j = b >= 200 && b < 300 || 304 === b, d && (v = Mb(o, y, d)), v = Nb(o, v, y, j), j ? (o.ifModified && (w = y.getResponseHeader("Last-Modified"), w && (r.lastModified[f] = w), w = y.getResponseHeader("etag"), w && (r.etag[f] = w)), 204 === b || "HEAD" === o.type ? x = "nocontent" : 304 === b ? x = "notmodified" : (x = v.state, m = v.data, n = v.error, j = !n)) : (n = x, !b && x || (x = "error", b < 0 && (b = 0))), y.status = b, y.statusText = (c || x) + "", j ? s.resolveWith(p, [m, x, y]) : s.rejectWith(p, [y, x, n]), y.statusCode(u), u = void 0, l && q.trigger(j ? "ajaxSuccess" : "ajaxError", [y, o, j ? m : n]), t.fireWith(p, [y, x]), l && (q.trigger("ajaxComplete", [y, o]), --r.active || r.event.trigger("ajaxStop"))) } return y }, getJSON: function (a, b, c) { return r.get(a, b, c, "json") }, getScript: function (a, b) { return r.get(a, void 0, b, "script") } }), r.each(["get", "post"], function (a, b) { r[b] = function (a, c, d, e) { return r.isFunction(c) && (e = e || d, d = c, c = void 0), r.ajax(r.extend({ url: a, type: b, dataType: e, data: c, success: d }, r.isPlainObject(a) && a)) } }), r._evalUrl = function (a) { return r.ajax({ url: a, type: "GET", dataType: "script", cache: !0, async: !1, global: !1, "throws": !0 }) }, r.fn.extend({ wrapAll: function (a) { var b; return this[0] && (r.isFunction(a) && (a = a.call(this[0])), b = r(a, this[0].ownerDocument).eq(0).clone(!0), this[0].parentNode && b.insertBefore(this[0]), b.map(function () { var a = this; while (a.firstElementChild) a = a.firstElementChild; return a }).append(this)), this }, wrapInner: function (a) { return r.isFunction(a) ? this.each(function (b) { r(this).wrapInner(a.call(this, b)) }) : this.each(function () { var b = r(this), c = b.contents(); c.length ? c.wrapAll(a) : b.append(a) }) }, wrap: function (a) { var b = r.isFunction(a); return this.each(function (c) { r(this).wrapAll(b ? a.call(this, c) : a) }) }, unwrap: function (a) { return this.parent(a).not("body").each(function () { r(this).replaceWith(this.childNodes) }), this } }), r.expr.pseudos.hidden = function (a) { return !r.expr.pseudos.visible(a) }, r.expr.pseudos.visible = function (a) { return !!(a.offsetWidth || a.offsetHeight || a.getClientRects().length) }, r.ajaxSettings.xhr = function () { try { return new a.XMLHttpRequest } catch (b) { } }; var Ob = { 0: 200, 1223: 204 }, Pb = r.ajaxSettings.xhr(); o.cors = !!Pb && "withCredentials" in Pb, o.ajax = Pb = !!Pb, r.ajaxTransport(function (b) { var c, d; if (o.cors || Pb && !b.crossDomain) return { send: function (e, f) { var g, h = b.xhr(); if (h.open(b.type, b.url, b.async, b.username, b.password), b.xhrFields) for (g in b.xhrFields) h[g] = b.xhrFields[g]; b.mimeType && h.overrideMimeType && h.overrideMimeType(b.mimeType), b.crossDomain || e["X-Requested-With"] || (e["X-Requested-With"] = "XMLHttpRequest"); for (g in e) h.setRequestHeader(g, e[g]); c = function (a) { return function () { c && (c = d = h.onload = h.onerror = h.onabort = h.onreadystatechange = null, "abort" === a ? h.abort() : "error" === a ? "number" != typeof h.status ? f(0, "error") : f(h.status, h.statusText) : f(Ob[h.status] || h.status, h.statusText, "text" !== (h.responseType || "text") || "string" != typeof h.responseText ? { binary: h.response } : { text: h.responseText }, h.getAllResponseHeaders())) } }, h.onload = c(), d = h.onerror = c("error"), void 0 !== h.onabort ? h.onabort = d : h.onreadystatechange = function () { 4 === h.readyState && a.setTimeout(function () { c && d() }) }, c = c("abort"); try { h.send(b.hasContent && b.data || null) } catch (i) { if (c) throw i } }, abort: function () { c && c() } } }), r.ajaxPrefilter(function (a) { a.crossDomain && (a.contents.script = !1) }), r.ajaxSetup({ accepts: { script: "text/javascript, application/javascript, application/ecmascript, application/x-ecmascript" }, contents: { script: /\b(?:java|ecma)script\b/ }, converters: { "text script": function (a) { return r.globalEval(a), a } } }), r.ajaxPrefilter("script", function (a) { void 0 === a.cache && (a.cache = !1), a.crossDomain && (a.type = "GET") }), r.ajaxTransport("script", function (a) { if (a.crossDomain) { var b, c; return { send: function (e, f) { b = r("<script>").prop({ charset: a.scriptCharset, src: a.url }).on("load error", c = function (a) { b.remove(), c = null, a && f("error" === a.type ? 404 : 200, a.type) }), d.head.appendChild(b[0]) }, abort: function () { c && c() } } } }); var Qb = [], Rb = /(=)\?(?=&|$)|\?\?/; r.ajaxSetup({ jsonp: "callback", jsonpCallback: function () { var a = Qb.pop() || r.expando + "_" + rb++; return this[a] = !0, a } }), r.ajaxPrefilter("json jsonp", function (b, c, d) { var e, f, g, h = b.jsonp !== !1 && (Rb.test(b.url) ? "url" : "string" == typeof b.data && 0 === (b.contentType || "").indexOf("application/x-www-form-urlencoded") && Rb.test(b.data) && "data"); if (h || "jsonp" === b.dataTypes[0]) return e = b.jsonpCallback = r.isFunction(b.jsonpCallback) ? b.jsonpCallback() : b.jsonpCallback, h ? b[h] = b[h].replace(Rb, "$1" + e) : b.jsonp !== !1 && (b.url += (sb.test(b.url) ? "&" : "?") + b.jsonp + "=" + e), b.converters["script json"] = function () { return g || r.error(e + " was not called"), g[0] }, b.dataTypes[0] = "json", f = a[e], a[e] = function () { g = arguments }, d.always(function () { void 0 === f ? r(a).removeProp(e) : a[e] = f, b[e] && (b.jsonpCallback = c.jsonpCallback, Qb.push(e)), g && r.isFunction(f) && f(g[0]), g = f = void 0 }), "script" }), o.createHTMLDocument = function () { var a = d.implementation.createHTMLDocument("").body; return a.innerHTML = "<form></form><form></form>", 2 === a.childNodes.length }(), r.parseHTML = function (a, b, c) { if ("string" != typeof a) return []; "boolean" == typeof b && (c = b, b = !1); var e, f, g; return b || (o.createHTMLDocument ? (b = d.implementation.createHTMLDocument(""), e = b.createElement("base"), e.href = d.location.href, b.head.appendChild(e)) : b = d), f = B.exec(a), g = !c && [], f ? [b.createElement(f[1])] : (f = pa([a], b, g), g && g.length && r(g).remove(), r.merge([], f.childNodes)) }, r.fn.load = function (a, b, c) { var d, e, f, g = this, h = a.indexOf(" "); return h > -1 && (d = mb(a.slice(h)), a = a.slice(0, h)), r.isFunction(b) ? (c = b, b = void 0) : b && "object" == typeof b && (e = "POST"), g.length > 0 && r.ajax({ url: a, type: e || "GET", dataType: "html", data: b }).done(function (a) { f = arguments, g.html(d ? r("<div>").append(r.parseHTML(a)).find(d) : a) }).always(c && function (a, b) { g.each(function () { c.apply(this, f || [a.responseText, b, a]) }) }), this }, r.each(["ajaxStart", "ajaxStop", "ajaxComplete", "ajaxError", "ajaxSuccess", "ajaxSend"], function (a, b) { r.fn[b] = function (a) { return this.on(b, a) } }), r.expr.pseudos.animated = function (a) { return r.grep(r.timers, function (b) { return a === b.elem }).length }; function Sb(a) { return r.isWindow(a) ? a : 9 === a.nodeType && a.defaultView } r.offset = { setOffset: function (a, b, c) { var d, e, f, g, h, i, j, k = r.css(a, "position"), l = r(a), m = {}; "static" === k && (a.style.position = "relative"), h = l.offset(), f = r.css(a, "top"), i = r.css(a, "left"), j = ("absolute" === k || "fixed" === k) && (f + i).indexOf("auto") > -1, j ? (d = l.position(), g = d.top, e = d.left) : (g = parseFloat(f) || 0, e = parseFloat(i) || 0), r.isFunction(b) && (b = b.call(a, c, r.extend({}, h))), null != b.top && (m.top = b.top - h.top + g), null != b.left && (m.left = b.left - h.left + e), "using" in b ? b.using.call(a, m) : l.css(m) } }, r.fn.extend({ offset: function (a) { if (arguments.length) return void 0 === a ? this : this.each(function (b) { r.offset.setOffset(this, a, b) }); var b, c, d, e, f = this[0]; if (f) return f.getClientRects().length ? (d = f.getBoundingClientRect(), d.width || d.height ? (e = f.ownerDocument, c = Sb(e), b = e.documentElement, { top: d.top + c.pageYOffset - b.clientTop, left: d.left + c.pageXOffset - b.clientLeft }) : d) : { top: 0, left: 0 } }, position: function () { if (this[0]) { var a, b, c = this[0], d = { top: 0, left: 0 }; return "fixed" === r.css(c, "position") ? b = c.getBoundingClientRect() : (a = this.offsetParent(), b = this.offset(), r.nodeName(a[0], "html") || (d = a.offset()), d = { top: d.top + r.css(a[0], "borderTopWidth", !0), left: d.left + r.css(a[0], "borderLeftWidth", !0) }), { top: b.top - d.top - r.css(c, "marginTop", !0), left: b.left - d.left - r.css(c, "marginLeft", !0) } } }, offsetParent: function () { return this.map(function () { var a = this.offsetParent; while (a && "static" === r.css(a, "position")) a = a.offsetParent; return a || qa }) } }), r.each({ scrollLeft: "pageXOffset", scrollTop: "pageYOffset" }, function (a, b) { var c = "pageYOffset" === b; r.fn[a] = function (d) { return S(this, function (a, d, e) { var f = Sb(a); return void 0 === e ? f ? f[b] : a[d] : void (f ? f.scrollTo(c ? f.pageXOffset : e, c ? e : f.pageYOffset) : a[d] = e) }, a, d, arguments.length) } }), r.each(["top", "left"], function (a, b) { r.cssHooks[b] = Oa(o.pixelPosition, function (a, c) { if (c) return c = Na(a, b), La.test(c) ? r(a).position()[b] + "px" : c }) }), r.each({ Height: "height", Width: "width" }, function (a, b) { r.each({ padding: "inner" + a, content: b, "": "outer" + a }, function (c, d) { r.fn[d] = function (e, f) { var g = arguments.length && (c || "boolean" != typeof e), h = c || (e === !0 || f === !0 ? "margin" : "border"); return S(this, function (b, c, e) { var f; return r.isWindow(b) ? 0 === d.indexOf("outer") ? b["inner" + a] : b.document.documentElement["client" + a] : 9 === b.nodeType ? (f = b.documentElement, Math.max(b.body["scroll" + a], f["scroll" + a], b.body["offset" + a], f["offset" + a], f["client" + a])) : void 0 === e ? r.css(b, c, h) : r.style(b, c, e, h) }, b, g ? e : void 0, g) } }) }), r.fn.extend({ bind: function (a, b, c) { return this.on(a, null, b, c) }, unbind: function (a, b) { return this.off(a, null, b) }, delegate: function (a, b, c, d) { return this.on(b, a, c, d) }, undelegate: function (a, b, c) { return 1 === arguments.length ? this.off(a, "**") : this.off(b, a || "**", c) } }), r.parseJSON = JSON.parse, "function" == typeof define && define.amd && define("jquery", [], function () { return r }); var Tb = a.jQuery, Ub = a.$; return r.noConflict = function (b) { return a.$ === r && (a.$ = Ub), b && a.jQuery === r && (a.jQuery = Tb), r }, b || (a.jQuery = a.$ = r), r
 });
 
+// TODO: Split get page info into the three different functions it can call
+//  then make the get user have var for whether we need posts or not.
+
+// TODO: Update missing users query to grab tag interested
 
 // Global variables
 
@@ -31,35 +35,18 @@ function main() {
     // get local data
     localData = getLocalData();
 
-    // run daily task if needed
+    // run daily tasks if needed
+    // these tasks prep the user for the follow/like phase
     if (checkAndRunDailyTasksTest())
         return false;
-
-    // if we got this far, we don't have daily tasks to run.
 
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
 
     // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
+    // switch to passive tasks to run in down time.
 }
-
-// execute main to run bot
-$(document).ready(main);
-
-// three major tasks: 
-//      Get user info 
-//      Like/Follow others 
-//      Update DB with info to analyze for follow/like others
-
-/*
-// Will get all user info
-var userObj = getPageInfo();
-getUserFollowBase(getPageInfo(), function (result) {
-    console.log("done");
-    userObj.followBase = result;
-});
-*/
 
 
 /***********************************************
@@ -96,20 +83,27 @@ function checkAndRunDailyTasks() {
     if (!localData.operation.flags.dailyCleared)
         clearDailyTotals();
 
+    // COMPLETED
     // scrape current user for info
-    if (localData.operation.flags.scrapeCurUser) {
-        console.log("scrapeCurUser: " + localData.operation.flags.scrapeCurUser);
-        updateCurUserInfo(localData.user.userId, function (success) {
-            if (!success) {
+    if (!localData.operation.flags.scrapeCurUser) {
+        // console.log("scrapeCurUser: " + localData.operation.flags.scrapeCurUser);
+        updateUserInfo(localData.user.userId, function (userObj) {
+            if (!userObj) {
                 // reload page and try again
                 saveLocalData(localData);
                 location.reload();
             }
             else {
+                // grab tag interests to be added in a second
+                var tagTemp = localData.user.tagInterests;
+                // update user object with new info
+                localData.user = userObj;
+                // replace missing tag interests
+                localData.user.tagInterests = tagTemp;
+
                 // we saved the local users info to the db.
                 // flip task to scrape tag page and reload page
-                localData.operation.flags.scrapeCurUser = 0;
-                localData.operation.flags.scrapeTagPage = 1;
+                localData.operation.flags.scrapeCurUser = 1;
                 saveLocalData(localData);
                 location.reload();
             }
@@ -117,14 +111,15 @@ function checkAndRunDailyTasks() {
         // return true. Let callback handle page reload
         return true;
     }
+    // COMPLETED
 
+    // TODO: Make tag interested into user array instead of a single user
     // scrape tag pages for top post authors and recent post authors
-    if (localData.operation.flags.scrapeTagPage) {
+    if (!localData.operation.flags.scrapeTagPage) {
         // call tag page loop
-        saveTagPageLoop(curTag, function () {
+        saveTagPageLoop(function () {
             // function to take care of flipping flags to next task when this loop is done.
-            localData.operation.flags.scrapeTagPage = 0;
-            localData.operation.flags.findTopTagFollowing = 1;
+            localData.operation.flags.scrapeTagPage = 1;
             saveLocalData(localData);
             location.reload();
         });
@@ -133,54 +128,22 @@ function checkAndRunDailyTasks() {
         return true;
     }
 
-    // scrape top user posts for top posters usernames
-    if (localData.operation.flags.findTopTagFollowing) {
-        if (localData.operation.lists.topPostsIndex >= localData.operation.lists.topPosts.length) {
-            // were done filling in top posters info
-            localData.operation.lists.topPostsIndex = 0;
-            // flip task to scrape recent posts and reload page
-            localData.operation.flags.findTopTagFollowing = 0;
-            localData.operation.flags.findRecentTagPosters = 1;
-            saveLocalData(localData);
-            location.reload();
-            return true;
-        }
-        // TODO: fill logic to add top post to db and to add top post author to top list
-        // Let callback handle page reload
-        return true;
-    }
+    // TODO: findTopTagFollowing and add to missing users.
+    // when scraping top user, label follow base as tag interested
 
-    // scrape recent posts for interested posters usernames
-    if (localData.operation.flags.findRecentTagPosters) {
-        if (localData.operation.lists.recentPostsIndex >= localData.operation.lists.recentPosts.length) {
-            // were done filling in recent posters info
-            localData.operation.lists.recentPostsIndex = 0;
-            // flip task to scrape top authors for interested followers and reload page
-            localData.operation.flags.findRecentTagPosters = 0;
+    // COMPLETED
+    // go to potential users and scrape basic info with no follow base
+    if (!localData.operation.flags.scrapePotentialFollows) {
+        savePotentialFollowsLoop(function () {
+            // flip task to like/follow users and reload page
             localData.operation.flags.scrapePotentialFollows = 1;
             saveLocalData(localData);
             location.reload();
-            return true;
-        }
-
-        // TODO: fill logic to add recent posts to db and to add recent post authors to list
-        // Let callback handle page reload
-        return true;
-    }
-
-    // go to potential users and scrape basic info with no follow base
-    if (localData.operation.flags.scrapePotentialFollows) {
-        savePotentialFollowsLoop(function () {
-            // flip task to like/follow users and reload page
-            localData.operation.flags.scrapePotentialFollows = 0;
-            localData.operation.flags.likeFollowUsers = 1;
-            saveLocalData(localData);
-            location.reload();
         });
-        // TODO: fill logic to add recent posts to db and to add recent post authors to 
         // Let callback handle page reload
         return true;
     }
+    // COMPLETED
 
     // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
     localData.operation.dailyTimer += millisecondsInADay;
@@ -192,17 +155,15 @@ function checkAndRunDailyTasks() {
 function clearDailyTotals() {
 
     localData.operation.flags.dailyCleared = 1;
-    localData.operation.flags.scrapeCurUser = 1;
+    localData.operation.flags.scrapeCurUser = 0;
     localData.operation.flags.scrapeTagPage = 0;
     localData.operation.flags.findTopTagFollowing = 0;
-    localData.operation.flags.findRecentTagPosters = 0;
     localData.operation.flags.scrapePotentialFollows = 0;
     localData.operation.flags.likeFollowUsers = 0;
 
-    localData.operation.lists.topPosts = [];
-    localData.operation.lists.topPostsIndex = 0;
-    localData.operation.lists.recentPosts = [];
-    localData.operation.lists.recentPostsIndex = 0;
+
+    localData.operation.lists.tagPages = [];
+    localData.operation.lists.tagPagesIndex = 0;
 
     localData.operation.lists.topPosters = [];
     localData.operation.lists.topPostersIndex = 0;
@@ -214,20 +175,35 @@ function clearDailyTotals() {
     localData.operation.lists.unfollowList = [];
     localData.operation.lists.unfollowListndex = 0;
 
-    localData.operation.lists.tagIndex = 0;
+    localData.user.tagInterestsIndex = 0;
 
     localData.operation.dailyLikes = 0;
     localData.operation.dailyFollows = 0;
+
+    data.operation.lists.topPosters = [];
+    data.operation.lists.topPostersIndex = 0;
+
+    data.operation.lists.missingUsers = [];
+    data.operation.lists.missingUsersIndex = 0;
+
+    data.operation.lists.followList = [];
+    data.operation.lists.followListIndex = 0;
+
+    data.operation.lists.unfollowList = [];
+    data.operation.lists.unfollowListIndex = 0;
+
+    data.operation.errorLog = [];
+    data.operation.dailyLikes = 0;
+    data.operation.dailyFollows = 0;
 }
 
 // navigate to user page and add all their info to the database, then switch task flag to nextTask
-function updateCurUserInfo(user, callback) {
+function updateUserInfo(user, callback) {
 
     // navigate to correct page
     if (location.href.indexOf(user) == -1) {
         saveLocalData(localData);
         location.href = "https://www.instagram.com/" + user + "/";
-        saveLocalData(localData);
         return;
     }
 
@@ -248,13 +224,13 @@ function updateCurUserInfo(user, callback) {
             return missArr.indexOf(item) == pos;
         });
         // add to localData
-        localData.operation.missingUsers = missArr;
+        // localData.operation.lists.missingUsers = missArr;
 
         pageInfo.followerBase = response;
         // remove the page type from the user object. We dont need it anymore.
         delete pageInfo.type;
-        // set local user data
-        localData.user = pageInfo;
+        //// set local user data
+        //localData.user = pageInfo;
         // save data to db
         sendUserObjToDB(pageInfo, afterUserSentDB, function () {
             // error
@@ -272,25 +248,25 @@ function updateCurUserInfo(user, callback) {
             logEvent(0, "Saved local user info to DB.");
             // save local data
             saveLocalData(localData);
-            callback(true);
+            callback(pageInfo);
         }
 
     });
 }
 
 // takes a tag and saves it to the database
-function saveTagPageLoop(curTag ,flagFlipFunction) {
+function saveTagPageLoop(flagFlipFunction) {
 
     // check if we are done looping
-    if (localData.operation.lists.tagIndex >= localData.user.tagInterests) {
+    if (localData.user.tagInterestsIndex >= localData.user.tagInterests) {
         // were done scraping tags.
-        localData.operation.lists.tagIndex = 0;
+        localData.user.tagInterestsIndex = 0;
         // flip task to scrape user pages and reload page
         flagFlipFunction();
     }
 
     // save the current tag to the database
-    var curTag = localData.user.tagInterests[localData.operation.lists.tagIndex];
+    var curTag = localData.user.tagInterests[localData.user.tagInterestsIndex];
     // check we are on the right page
     if (location.href.indexOf(curTag) == -1) {
         // not at the right location. Navigate.
@@ -299,38 +275,115 @@ function saveTagPageLoop(curTag ,flagFlipFunction) {
         return;
     }
     var pageInfo = getPageInfo();
-    // add tag to database
-    tagSet(pageInfo.name, pageInfo.numPosts, function () {
-        // success
-        logEvent(0, "Saved " + pageInfo.name + " to database.");
-        localData.operation.lists.topPosts = pageInfo.topPosts;
-        localData.operation.lists.recentPosts = pageInfo.recentPosts;
 
-        // attach current tag to posts
-        for (var i = 0; i < localData.operation.lists.topPosts.length; i++)
-            localData.operation.lists.topPosts[i].tagInterest = curTag;
-        for (var i = 0; i < localData.operation.lists.recentPosts.length; i++)
-            localData.operation.lists.recentPosts[i].tagInterest = curTag;
-        // increment index and reload page. Check for out of bounds index is at beginning of function
-        localData.operation.lists.tagIndex++;
-        saveLocalData(localData);
-        location.reload();
+    // TODO: Update pageInfo to have actual author username instead of useless id in post objects.
+    // push top poster username to top posters array
+    var pagePostLinks = getElementsLikeLink("/p/");
+    var topIndex = 0;
+
+    var thisTagInterested = [];
+
+    timeoutLoop(topIndex, 9, 2500, function () {
+        // loop function
+
+        // TODO: Make sure this index checks out
+        console.log("Index for tag page authors: " + topIndex);
+
+        pagePostLinks[topIndex].click();
+        var usernames = $("body").find("a[title]");
+
+        var topPoster = usernames[0].title;
+
+        pageInfo.topPosts[topIndex].owner = topPoster;
+        pageInfo.topPosts[topIndex].comments.users = [];
+
+        // grab the comments on this post too
+        for (var i = 1; i < usernames.length; i++) {
+            pageInfo.topPosts[topIndex].comments.users.push(usernames[i]);
+            thisTagInterested.push(usernames[i]);
+        }
 
     }, function () {
-        // error
-        logEvent(2, "Failed to save " + pageInfo.name + " to database. Skipping.");
-        // skip tag and move on
-        localData.operation.lists.tagIndex++;
-        saveLocalData(localData);
-        location.reload();
-    }); 
+        // loop finished
+        // do it again with the recent posters
+        var recentIndex = 9
+        timeoutLoop(recentIndex, 21, 2500, function () {
+            // loop function
+
+            var recentsIndex = 9 - recentIndex;
+
+            // TODO: Make sure this index checks out
+            console.log("Index for tag page authors: " + recentIndex);
+
+            pagePostLinks[recentIndex].click();
+            var usernames = $("body").find("a[title]");
+
+            pageInfo.recents[recentsIndex].owner = usernames[0];
+            thisTagInterested.push(usernames[0]);
+            pageInfo.recents[recentsIndex].comments.users = [];
+
+            // grab the comments on this post too
+            for (var i = 1; i < usernames.length; i++) {
+                pageInfo.recents[recentsIndex].comments.users.push(usernames[i]);
+                thisTagInterested.push(usernames[i]);
+            }
+
+        }, function () {
+            // loop finished
+
+            console.log("Check page info object: ");
+            console.log(pageInfo);
+
+            // TODO: 
+            // add missing users as tag interested
+
+            interestSet(thisTagInterested, curTag, function () {
+                // success
+
+                // add tag to database
+                tagSet(pageInfo.name, pageInfo.numPosts, function () {
+                    // success
+                    // TODO: Save this as a tag object you fkn dingus
+                    logEvent(0, "Saved " + pageInfo.name + " to database.");
+                    localData.operation.lists.tags.push(pageInfo);
+
+                    // attach current tag to posts
+                    for (var i = 0; i < localData.operation.lists.topPosts.length; i++)
+                        localData.operation.lists.topPosts[i].tagInterest = curTag;
+                    for (var i = 0; i < localData.operation.lists.recentPosts.length; i++)
+                        localData.operation.lists.recentPosts[i].tagInterest = curTag;
+                    // increment index and reload page. Check for out of bounds index is at beginning of function
+                    localData.user.tagInterestsIndex++;
+                    saveLocalData(localData);
+                    location.reload();
+
+                }, function () {
+                    // error
+                    logEvent(2, "Failed to save " + pageInfo.name + " to database. Skipping.");
+                    // skip tag and move on
+                    localData.user.tagInterestsIndex++;
+                    saveLocalData(localData);
+                    location.reload();
+                });
+            },
+            function () {
+                // error
+                logEvent(2, "Failed to save tag interested users for: " + curTag + ". Retrying.");
+                saveLocalData(localData);
+                location.reload();
+            });
+        });
+    });
 }
 
 // takes a potential follower and saves them to the database
 function savePotentialFollowsLoop(flagFlipFunction) {
 
+    // TODO: Update to pull potential follows from db and if not enough users, then update the database and try again
+
     // make sure we have users to scrape
     if (localData.operation.lists.missingUsers.length == 0) {
+        // TODO: Grab only relevant tag missing users
         // we haven't filled out missingUsers array yet. Lets take care of that before moving on.
         userGetMissing(2000, function (response) {
             // success
@@ -370,7 +423,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         return;
     }
 
-    // add tag to database
+    // add user to database
     userSet(pageInfo.userId, pageInfo.numPosts, pageInfo.numFollowers, pageInfo.numFollowing, pageInfo.profilePic, pageInfo.realName, pageInfo.bio, pageInfo.website, function () {
         // success
         logEvent(0, "Saved " + pageInfo.userId + " to database.");
@@ -389,7 +442,6 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         location.reload();
     });
 }
-
 
 /***********************************************
 ************* Scraping Functions ***************
@@ -443,37 +495,41 @@ function getPageInfo() {
 }
 
 // scrapes user page for all relevant info and returns in formatted object
-function getUserPageInfo() {
+function getUserPageInfo(needPosts) {
 
     // use this shit instead, fuck
     // unsafeWindow._sharedData.entry_data.ProfilePage[0].user
 
 
-    if (typeof unsafeWindow._sharedData.entry_data.ProfilePage == "undefined") {
-        logEvent(1, "getUserPageInfo: Instagram shared ProfilePage data wasn't loaded.");
-        return null;
-
+    if (typeof unsafeWindow._sharedData.entry_data.ProfilePage == "undefined" && !needPosts) {
         // alternative to using instagram shared data
 
-        //// username is in url
-        //var url = location.href;
-        //var splits = url.split("/");
-        //var username = splits[splits.length - 2];
+        // username is in url
+        var url = location.href;
+        var splits = url.split("/");
+        var username = splits[splits.length - 2];
 
-        //// get the ul that holds the number of posts, followers, and following
-        //var infoList = $(getElementsLikeLink("/following/"));
-        //var userObj = {};
-        //while (infoList.prop('nodeName') != "UL")
-        //    infoList = infoList.parent();
+        // get the ul that holds the number of posts, followers, and following
+        var infoList = $(getElementsLikeLink("/following/"));
+        var userObj = {};
+        while (infoList.prop('nodeName') != "UL")
+            infoList = infoList.parent();
 
-        //userObj.userId = username;
-        //userObj.numPosts = getUserNumPosts(infoList);
-        //userObj.numFollowers = getUserNumFollowers(infoList);
-        //userObj.numFollowing = getUserNumFollowing(infoList);
-        //userObj.profilePic = $("[alt='Change profile photo']").attr("src");
-        //userObj.realName = $("h2").html();
-        //userObj.bio = $("h2").parent().find("span span").html();
-        //userObj.website = $("h2").parent().find("a").html();
+        userObj.type = 1;
+        userObj.userId = username;
+        userObj.numPosts = getUserNumPosts(infoList);
+        userObj.posts = getUserPosts();
+        userObj.numFollowers = getUserNumFollowers(infoList);
+        userObj.numFollowing = getUserNumFollowing(infoList);
+        userObj.profilePic = $("[alt='Change profile photo']").attr("src");
+        userObj.realName = $("h2").html();
+        userObj.bio = $("h2").parent().find("span span").html();
+        userObj.website = $("h2").parent().find("a").html();
+    }
+    // we need posts. If no shared data, return null.
+    else if (typeof unsafeWindow._sharedData.entry_data.ProfilePage == "undefined") {
+        saveLocalData(localData);
+        return null;
     }
     else {
         var userObj = {};
@@ -493,9 +549,9 @@ function getUserPageInfo() {
         userObj.realName = shortCut.full_name;
         userObj.bio = shortCut.biography;
         userObj.website = shortCut.external_url;
-
-        return userObj;
     }
+
+    return userObj;
 }
 
 // scrapes post page for all relevant info and returns in formatted object
@@ -519,7 +575,7 @@ function getPostPageInfo() {
         postObj.time = shortCut.taken_at_timestamp;
         postObj.description = shortCut.edge_media_to_caption.edges[0].node.text;
         postObj.isVideo = shortCut.is_video;
-        postObj.num_likes = shortCut.edge_media_preview_like.count;
+        postObj.numLikes = shortCut.edge_media_preview_like.count;
         postObj.likes = shortCut.edge_media_preview_like.edges
         postObj.comments = shortCut.edge_media_to_comment.edges;
         postObj.tagged_users = shortCut.edge_media_to_tagged_user.edges;
@@ -614,6 +670,25 @@ function getUserNumFollowing(infoList) {
     following = following.html();
     following = parseInt(following.replace(/\D/g, ''));
     return following;
+}
+
+// when on the user page, will get the first posts that are displayed, as well as their info and format them close to the instagram standard as possible
+function getUserPosts() {
+    // get all the links that contain the image and info
+    var postLinks = getElementsLikeLink("?taken-by");
+    var posts = [];
+
+    for (var i = 0; i < postLinks.length; i++) {
+        // all you can grab from this method is code, caption, and thumbnail.
+        // youll need to use window shared data to grab more complex post info
+        var post_node = {};
+        var code = postLinks[0].href.split("/");
+        post_node.code = code[code.length - 2];
+        post_node.caption = $(postLinks[0]).find("img").attr("alt");
+        post_node.thumbnail_src = $(postLinks[0]).find("img").attr("src");
+        posts.push(post_node);
+    }
+    return posts;
 }
 
 // scrapes followers and following and calls callback. Callback has 1 object with 2 variables for followers and following arrays
@@ -711,8 +786,9 @@ function scrollBottom(container, expectedSize, old_li_count, li_matches, index, 
         li_matches = 0;
 
     // stop if we have looped for more than 100 seconds
-    // or hit at least 2000 follows in the list
-    if( index > 500 || li_count > 2000 || ((li_matches >=5)  && (li_count > 0.95*expectedSize)) ){
+    // or hit at least 1000 follows in the list
+    // TODO: Better solution than hardcoding in 1000 limit
+    if( index > 500 || li_count > 1000 || ((li_matches >=5)  && (li_count > 0.95*expectedSize)) ){
         callback();
         return;
     }
@@ -849,6 +925,19 @@ function getElementsLikeHtml(selector, match_string) {
     return matches;
 }
 
+// index is starting index, stop is stop index, time is the timeout before next loop, body is actual code to execute, done is code to execute after the loop completes
+function timeoutLoop(index, stop, time, body, done) {
+    if (index < stop) {
+        body();
+        setTimeout(function () {
+            timeoutLoop(++index, stop, body);
+        }, time);
+    }
+    else {
+        done();
+    }
+}
+
 // update this to log errors in the future. msgTypes 0 for success, 1 for warning, 2 for error
 function logEvent(msgType, msg, callback) {
     // update this to store logs in the database in the future.
@@ -879,39 +968,40 @@ function getLocalData() {
 
     if (data == null) {
 
-        // TODO: Make this interactive for a new user to update
-        logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
         data = {};
         data.user = {};
+        data.operation = {};
+        data.operation.flags = {};
+        data.operation.lists = {};
+
+        // TODO: Make this interactive for a new user to update
         data.user.userId = "dirtkingdom";
         data.user.tagInterests = ["motocross", "braap", "dirtbike"];
+        data.user.tagInterestsIndex = 0;
 
-        data.operation = {};
-        // flags for operation of bot
-        data.operation.flags = {};
-        // scrapes your info and follow base
-        data.operation.flags.scrapeCurUser = 1;
-        // gets top post authors and recent posts for a tag
+        data.operation.flags.dailyCleared = 1;
+        data.operation.flags.scrapeCurUser = 0;
         data.operation.flags.scrapeTagPage = 0;
-        // grab users from top posts and scrape their follow base. Label followers as tag interested.
         data.operation.flags.findTopTagFollowing = 0;
-        // grab author of recent posts in tag categories and label as tag interested
-        data.operation.flags.findRecentTagPosters = 0;
-        // scrapes stats from missing.php query 
         data.operation.flags.scrapePotentialFollows = 0;
-        // like/follow users from auto follow list and unfollow users from unfollow list
         data.operation.flags.likeFollowUsers = 0;
-        // lists needed for looping through users
-        data.operation.lists = {};
+
+
+        data.operation.lists.tagPages = [];
+        data.operation.lists.tagPagesIndex = 0;
+
         data.operation.lists.topPosters = [];
         data.operation.lists.topPostersIndex = 0;
+
         data.operation.lists.missingUsers = [];
         data.operation.lists.missingUsersIndex = 0;
+
         data.operation.lists.followList = [];
-        data.operation.lists.followListndex = 0;
+        data.operation.lists.followListIndex = 0;
+
         data.operation.lists.unfollowList = [];
-        data.operation.lists.unfollowListndex = 0;
-        // other operational needs
+        data.operation.lists.unfollowListIndex = 0;
+
         data.operation.errorLog = [];
         data.operation.dailyLikes = 0;
         data.operation.dailyFollows = 0;
@@ -920,6 +1010,7 @@ function getLocalData() {
         data.operation.nextPage = "";
 
         localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
+        logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
     }
     else
         data = JSON.parse(data);
@@ -932,6 +1023,7 @@ function saveLocalData(data) {
     localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
 }
 
+// TODO: Save local data object to the database with username as key
 function sendUserObjToDB(userObj, success, error) {
     // get counts for db responses
     var expectedReturns = 2;
@@ -1290,7 +1382,30 @@ function tagGet(tag, success, error) {
     });
 }
 
+function interestMassSet(users, tag, success, error) {
+    // TODO: Make user into an array of users
+    jQuery.post({
+        url: api_url + "/interest/set/",
+        data: {
+            tag_base: JSON.stringify(users),
+            tag_name: tag
+        },
+        success: function (result) {
+            result = JSON.parse(result);
+            if (result)
+                success();
+            else
+                error();
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
+
 function interestSet(user, tag, success, error) {
+    // TODO: Make user into an array of users
     jQuery.post({
         url: api_url + "/interest/set/",
         data: {
@@ -1420,7 +1535,7 @@ function setLog(timestamp, logType, log) {
         data: {
             log_time: timestamp,
             log_type: logType,
-            log: log
+            log_msg: log
         },
         success: function (result) {
             result = JSON.parse(result);
