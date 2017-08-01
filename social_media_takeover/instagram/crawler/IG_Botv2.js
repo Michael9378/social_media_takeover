@@ -993,15 +993,15 @@ function logEvent(msgType, msg, callback) {
             break;
         case 1:
             console.log(timeStamp + ": Warning \"" + msg + "\"");
-            localData.operation.errorLog.Add(timeStamp + ": Warning \"" + msg + "\"");
+            localData.operation.errorLog.push(timeStamp + ": Warning \"" + msg + "\"");
             break;
         case 2:
             console.log(timeStamp + ": Error \"" + msg + "\"");
-            localData.operation.errorLog.Add(timeStamp + ": Error \"" + msg + "\"");
+            localData.operation.errorLog.push(timeStamp + ": Error \"" + msg + "\"");
             break;
         default:
             console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
-            localData.operation.errorLog.Add(timeStamp + ": Unknown Message Type \"" + msg + "\"");
+            localData.operation.errorLog.push(timeStamp + ": Unknown Message Type \"" + msg + "\"");
     }
     // setLog(timeStamp.getTime(), msgType, msg);
 }
