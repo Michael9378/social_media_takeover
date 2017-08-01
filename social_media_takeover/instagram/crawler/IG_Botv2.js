@@ -37,7 +37,7 @@ function main() {
 
     // run daily tasks if needed
     // these tasks prep the user for the follow/like phase
-    if (checkAndRunDailyTasksTest())
+    if (checkAndRunDailyTasks())
         return false;
     else
     	alert("Done with daily tasks.");
@@ -51,18 +51,12 @@ function main() {
     // switch to passive tasks to run in down time.
 }
 
+main();
+
 
 /***********************************************
 ***************** Bot Functions ****************
 ************************************************/
-
-function checkAndRunDailyTasksTest() {
-    savePotentialFollowsLoop(function () {
-        saveLocalData(localData);
-        alert("done");
-    });
-    return true;
-}
 
 // returns true if we are waiting for a callback to execute and reload page.
 function checkAndRunDailyTasks() {
@@ -247,6 +241,9 @@ function updateUserInfo(user, callback) {
 
 // takes a tag and saves it to the database
 function saveTagPageLoop(flagFlipFunction) {
+
+	if(typeof localData.user.tagInterestsIndex != "number")
+		localData.user.tagInterestsIndex = 0;
 
     // check if we are done looping
     if (localData.user.tagInterestsIndex >= localData.user.tagInterests.length) {
