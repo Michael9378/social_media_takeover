@@ -20,11 +20,11 @@ if( isset( $_POST["scrape_limit"] ) && isset( $_POST["tag_interest"] ) ){
 	$sql .= "AND `user_sum`.`user_id` IN(";
 	$sql .= "SELECT `user_id` FROM `ig_user_tag_interest` WHERE ";
 	foreach($tag_interest as $tag){
-		$sql .= " `tag_name` = '".$tag."') OR";
+		$sql .= " `tag_name` = '".$tag."' OR";
 	}
 	// trim the OR 
 	$sql = substr($sql, 0, -2);
-	$sql .= "LIMIT 0,".$scrape_limit.";";
+	$sql .= ") LIMIT 0,".$scrape_limit.";";
 
 	jr( sql_get_query( $sql ) );
 }
