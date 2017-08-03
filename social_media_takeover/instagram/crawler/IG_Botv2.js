@@ -777,7 +777,7 @@ function getUserFollowBase(userObj, max_list_expansion, callback) {
         // make sure the close button has closed the opened div
         elementNotExists(getElementsByHtml("Button", "Close")[0], function () {
             // get the following base
-            getUserFollowBaseHelper(userObj, 1, results, function (results_2) {
+            getUserFollowBaseHelper(userObj, 1, max_list_expansion, results, function (results_2) {
                 // when its done, close the div again
                 var closeBtn = getElementsByHtml("Button", "Close")[0];
                 if (typeof closeBtn != "undefined")
