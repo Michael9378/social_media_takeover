@@ -27,6 +27,9 @@
 
 // TODO: logEvents should have a callback
 
+// TODO: Add timeout to check if we are stuck
+// TODO: Add "loaded same page X times in a row" error to check if we are stuck reloading the same page.
+
 // Global variables
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
@@ -92,7 +95,7 @@ function checkAndRunDailyTasks() {
     if (!localData.operation.flags.scrapeCurUser) {
         console.log("Running scrapeCurUser. Task counter: " + localData.operation.dailyTaskCounter);
         // console.log("scrapeCurUser: " + localData.operation.flags.scrapeCurUser);
-        updateUserInfo(localData.user.userId, function (userObj) {
+        updateUserInfo(localData.user.userId, 1000, 1000, function (userObj) {
             if (!userObj) {
                 // reload page and try again
                 saveLocalData(localData);
@@ -198,7 +201,7 @@ function clearDailyTotals() {
 }
 
 // navigate to user page and add all their info to the database, then switch task flag to nextTask
-function updateUserInfo(user, max_list_expansion, callback) {
+function updateUserInfo(user, max_followers_expansion, max_following_expansion, callback) {
 
     // navigate to correct page
     if (location.href.indexOf(user) == -1) {
@@ -216,7 +219,7 @@ function updateUserInfo(user, max_list_expansion, callback) {
     }
 
     // scrape user follow base
-    getUserFollowBase(pageInfo, max_list_expansion, function (response) {
+    getUserFollowBase(pageInfo, max_followers_expansion, max_following_expansion, function (response) {
 
         pageInfo.followerBase = response;
         // remove the page type from the user object. We dont need it anymore.
@@ -407,9 +410,9 @@ function findTopTagFollowingLoop(flagFlipFunction){
 
 	var curUser = curTagPage.topPosts[topPosterIndex].owner;
 
-	updateUserInfo(curUser, 370, function(userObj){
+	updateUserInfo(curUser, 1000, 9, function(userObj){
 		// set tag interested in database
-		interestMassSet(userObj.followers, curTagPage.name, function(){
+		interestMassSet(userObj.followerBase.followers, curTagPage.name, function(){
 		    // success
 		    localData.operation.dailyTaskCounter++;
 			localData.operation.lists.tagPageTopPosterIndex++;
@@ -473,7 +476,6 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     // check we haven't 404'ed
     if (getElementsLikeHtml("p", "The link you followed may be broken, or the page may have been removed.").length > 0) {
         // we 404'ed
-        alert("This page is a 404");
         logEvent(2, "The user's page no longer exists: " + curMissUser);
         // go to next user
         localData.operation.lists.missingUsersIndex++;
@@ -771,9 +773,9 @@ function getUserPosts() {
 }
 
 // scrapes followers and following and calls callback. Callback has 1 object with 2 variables for followers and following arrays
-function getUserFollowBase(userObj, max_list_expansion, callback) {
+function getUserFollowBase(userObj, max_followers_expansion, max_following_expansion, callback) {
     // get the followers userbase
-    getUserFollowBaseHelper(userObj, 0, max_list_expansion, {}, function (results) {
+    getUserFollowBaseHelper(userObj, 0, max_followers_expansion, {}, function (results) {
         // close opened menu
         var closeBtn = getElementsByHtml("Button", "Close")[0];
         if (typeof closeBtn != "undefined")
@@ -781,7 +783,7 @@ function getUserFollowBase(userObj, max_list_expansion, callback) {
         // make sure the close button has closed the opened div
         elementNotExists(getElementsByHtml("Button", "Close")[0], function () {
             // get the following base
-            getUserFollowBaseHelper(userObj, 1, max_list_expansion, results, function (results_2) {
+            getUserFollowBaseHelper(userObj, 1, max_following_expansion, results, function (results_2) {
                 // when its done, close the div again
                 var closeBtn = getElementsByHtml("Button", "Close")[0];
                 if (typeof closeBtn != "undefined")
@@ -881,7 +883,7 @@ function scrollBottom(container, expectedSize, old_li_count, li_matches, index, 
         container.scrollTop(container.height() + 99999);
         index++;
         // slowDownFactor of 1 results in a 429 from instagram.
-        var slowDownFactor = 10;
+        var slowDownFactor = 3;
         setTimeout(function () { scrollBottom(container, expectedSize, li_count, li_matches, index, callback); }, slowDownFactor*200);
         return;
     }
