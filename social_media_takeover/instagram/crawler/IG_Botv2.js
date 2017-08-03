@@ -25,6 +25,8 @@
 
 // TODO: Update missing users query to grab tag interested
 
+// TODO: logEvents should have a callback
+
 // Global variables
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
@@ -131,8 +133,8 @@ function checkAndRunDailyTasks() {
     }
 
     // scrape top poster follow base for tag interested users
-    // this one is going to be a shitload of requests. Set to run every 50th
-    if (!localData.operation.flags.findTopTagFollowing && localData.operation.dailyTaskCounter % 15 == 0) {
+    // this one is going to be a shitload of requests. Set to run every 40th
+    if (!localData.operation.flags.findTopTagFollowing && localData.operation.dailyTaskCounter % 40 == 0) {
         console.log("Running findTopTagFollowing. Task counter: " + localData.operation.dailyTaskCounter);
     	// run loop to scrape all top posters
         findTopTagFollowingLoop(function () {
@@ -398,6 +400,7 @@ function findTopTagFollowingLoop(flagFlipFunction){
 		// were done with this tag.
 		localData.operation.lists.tagPageTopPosterIndex = 0;
 		localData.operation.lists.tagPagesIndex++;
+		saveLocalData(localData);
 		location.reload();
 		return;
 	}
@@ -482,6 +485,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
 
     var pageInfo = getPageInfo();
     if (pageInfo == null) {
+        saveLocalData(localData);
         location.reload();
         return;
     }
@@ -1629,30 +1633,3 @@ function setLog(timestamp, logType, log, callback) {
         }
     });
 }
-
-/*
-
-TODO: 
-    Finish follows ajax calls
-    Add tags in post as new table and implement for better analysis
-
-// generic ajax call format.
-$.ajax({
-    url: api_url + "/path/to/call/",
-    type: "POST",
-    data: {
-    // TODO
-    },
-    success: function( result ){
-    result = JSON.parse(result);
-    if( result )
-        success();
-    else
-        error();
-    },
-    error: function( jqXHR, textStatus, errorThrown ){
-    logEvent(2,  textStatus + " " + jqXHR.status + " " + errorThrown );
-    }
-    }
-});
-*/
