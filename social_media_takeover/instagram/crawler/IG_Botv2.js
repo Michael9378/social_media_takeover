@@ -43,6 +43,12 @@ function main() {
     	alert("Done with daily tasks.");
 
     saveLocalData(localData);
+
+    // if we have been sitting for 30 minutes, reload the page, we are stuck.
+    setTimeout(function () {
+        logEvent(2, "We timed out on the page. Look into that. Here is the localData.operation.flags array: " + JSON.stringify(localData.operation.flags));
+        location.reload();
+    }, 1000 * 60 * 30);
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
@@ -51,7 +57,7 @@ function main() {
     // switch to passive tasks to run in down time.
 }
 
-// main();
+main();
 
 
 /***********************************************
@@ -461,6 +467,19 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         return;
     }
 
+    // check we haven't 404'ed
+    if (getElementsLikeHtml("p", "The link you followed may be broken, or the page may have been removed.").length > 0) {
+        // we 404'ed
+        alert("This page is a 404");
+        logEvent(2, "The user's page no longer exists: " + curMissUser);
+        // go to next user
+        localData.operation.lists.missingUsersIndex++;
+        saveLocalData(localData);
+        if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
+            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";            
+        return;
+    }
+
     var pageInfo = getPageInfo();
     if (pageInfo == null) {
         location.reload();
@@ -479,7 +498,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         // if we still have missing users, go to the next user
         // otherwise reload the page and figure out life
         if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
-            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex] + "/";
+            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
         else
             location.reload();
 
@@ -529,6 +548,7 @@ function getPageInfo() {
             logEvent(2, "getPageInfo: Could not find pageType. URL: " + url);
             pageInfo = null;
     }
+
 
     // make sure we got page info
     if (pageInfo == null)
@@ -1009,7 +1029,7 @@ function logEvent(msgType, msg, callback) {
             console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
             localData.operation.errorLog.push(timeStamp + ": Unknown Message Type \"" + msg + "\"");
     }
-    // setLog(timeStamp.getTime(), msgType, msg);
+    setLog(timeStamp.getTime(), msgType, msg, callback);
 }
 
 // returns either the local storage item or defaults to a new localData object
@@ -1579,7 +1599,7 @@ function commentGet(post, success, error) {
     });
 }
 
-function setLog(timestamp, logType, log) {
+function setLog(timestamp, logType, log, callback) {
     jQuery.post({
         url: api_url + "/log/set/",
         data: {
@@ -1593,10 +1613,12 @@ function setLog(timestamp, logType, log) {
                 console.log(timeStamp + ": Error \"" + msg + "\"");
                 localData.operation.errorLog.Add(timeStamp + ": Error \"Unable to save log to database.\"");
             }
+            callback();
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.log(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
             localData.operation.errorLog.Add(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
+            callback();
         }
     });
 }
