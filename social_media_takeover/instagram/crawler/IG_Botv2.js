@@ -131,7 +131,7 @@ function checkAndRunDailyTasks() {
     }
 
     // scrape top poster follow base for tag interested users
-    // this one is going to be a shitload of requests. Set to run every 15th task
+    // this one is going to be a shitload of requests. Set to run every 50th
     if (!localData.operation.flags.findTopTagFollowing && localData.operation.dailyTaskCounter % 15 == 0) {
         console.log("Running findTopTagFollowing. Task counter: " + localData.operation.dailyTaskCounter);
     	// run loop to scrape all top posters
@@ -196,7 +196,7 @@ function clearDailyTotals() {
 }
 
 // navigate to user page and add all their info to the database, then switch task flag to nextTask
-function updateUserInfo(user, callback) {
+function updateUserInfo(user, max_list_expansion, callback) {
 
     // navigate to correct page
     if (location.href.indexOf(user) == -1) {
@@ -214,7 +214,7 @@ function updateUserInfo(user, callback) {
     }
 
     // scrape user follow base
-    getUserFollowBase(pageInfo, function (response) {
+    getUserFollowBase(pageInfo, max_list_expansion, function (response) {
 
         pageInfo.followerBase = response;
         // remove the page type from the user object. We dont need it anymore.
@@ -404,7 +404,7 @@ function findTopTagFollowingLoop(flagFlipFunction){
 
 	var curUser = curTagPage.topPosts[topPosterIndex].owner;
 
-	updateUserInfo(curUser, function(userObj){
+	updateUserInfo(curUser, 370, function(userObj){
 		// set tag interested in database
 		interestMassSet(userObj.followers, curTagPage.name, function(){
 		    // success
@@ -495,12 +495,17 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         // increment index
         localData.operation.lists.missingUsersIndex++;
         saveLocalData(localData);
-        // if we still have missing users, go to the next user
-        // otherwise reload the page and figure out life
-        if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
-            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
-        else
-            location.reload();
+
+        // stay on the page for 2 seconds to avoid a 429
+        setTimeout(function () {
+            // if we still have missing users, go to the next user
+            // otherwise reload the page and figure out life
+            if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
+                location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
+            else
+                location.reload();
+            return;
+        }, 2000);
 
     }, function () {
         // error
@@ -762,9 +767,9 @@ function getUserPosts() {
 }
 
 // scrapes followers and following and calls callback. Callback has 1 object with 2 variables for followers and following arrays
-function getUserFollowBase(userObj, callback) {
+function getUserFollowBase(userObj, max_list_expansion, callback) {
     // get the followers userbase
-    getUserFollowBaseHelper(userObj, 0, {}, function (results) {
+    getUserFollowBaseHelper(userObj, 0, max_list_expansion, {}, function (results) {
         // close opened menu
         var closeBtn = getElementsByHtml("Button", "Close")[0];
         if (typeof closeBtn != "undefined")
@@ -786,7 +791,7 @@ function getUserFollowBase(userObj, callback) {
     });
 }
 
-function getUserFollowBaseHelper(userObj, followFlag, results, callback) {
+function getUserFollowBaseHelper(userObj, followFlag, max_list_expansion, results, callback) {
 
     if (followFlag == 0)
         getElementsLikeLink("/followers/")[0].click();
@@ -809,14 +814,14 @@ function getUserFollowBaseHelper(userObj, followFlag, results, callback) {
         else
             container = $(getElementsByHtml("div", "Following")[0]).parent().find("ul").parent();
 
-        var expectedSize = 1000;
+        var expectedSize = max_list_expansion;
         if (followFlag == 0)
             expectedSize = userObj.numFollowers;
         else
             expectedSize = userObj.numFollowing;
 
-        if (expectedSize > 1000)
-            expectedSize = 1000;
+        if (expectedSize > max_list_expansion)
+            expectedSize = max_list_expansion;
 
         scrollBottom(container, expectedSize, 0, 0, 0, function () {
 
@@ -858,7 +863,7 @@ function scrollBottom(container, expectedSize, old_li_count, li_matches, index, 
     // stop if we have looped for more than 100 seconds
     // or hit at least 1000 follows in the list
     // TODO: Better solution than hardcoding in 1000 limit
-    if( index > 500 || li_count > 1000 || ((li_matches >=5)  && (li_count > 0.95*expectedSize)) ){
+    if (index > 300 || li_count > expectedSize ) {
         callback();
         return;
     }
@@ -871,7 +876,9 @@ function scrollBottom(container, expectedSize, old_li_count, li_matches, index, 
     else {
         container.scrollTop(container.height() + 99999);
         index++;
-        setTimeout(function () { scrollBottom(container, expectedSize, li_count, li_matches, index, callback); }, 200);
+        // slowDownFactor of 1 results in a 429 from instagram.
+        var slowDownFactor = 10;
+        setTimeout(function () { scrollBottom(container, expectedSize, li_count, li_matches, index, callback); }, slowDownFactor*200);
         return;
     }
 }
