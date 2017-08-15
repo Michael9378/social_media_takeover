@@ -1,4 +1,4 @@
-﻿// ==UserScript==
+// ==UserScript==
 // @name         IG Botv2
 // @namespace    http://michaeljscott.net/
 // @version      0.1
@@ -27,18 +27,11 @@
 
 // TODO: logEvents should have a callback
 
-// TODO: Add "loaded same page X times in a row" error to check if we are stuck reloading the same page.
-
 // TODO: Optimize heavy duty sql queries
 
 // TODO: prevent duplicate tag page (last tage pages is added to array twice?
 
 // TODO: prevent end of missing users from infinite looping
-
-// TODO: Minimize localStorage size and number of requests made by keeping counters stored in local storage
-// and only grabbing a portion of the chunk you need from database (ie grab 100/8000 and use counter to keep track)
-// and periodically dump to database and clear local storage (scrapped users, error log, ect)
-// when saving an obj from an array, pop it off to clear and read.
 
 // Global variables
 
@@ -51,6 +44,7 @@ function main() {
     // get local data
     localData = getLocalData();
 
+    // TODO: Add timeout check as well
     // checks to make sure we arent looping on the same page aimlessly
     if (checkForStuckPage()) {
         console.log("We looped on this page 5 times.");
@@ -197,6 +191,7 @@ function clearDailyTotals() {
     localData.operation.lists.tagPageTopPosterIndex = 0;
 
     localData.operation.lists.missingUsers = [];
+    operation.lists.missingUsersIndex = 0;
     localData.operation.lists.scrapedUsersCount = 0;
     localData.operation.lists.scrapedUsers = [];
 
@@ -288,7 +283,6 @@ function saveTagPageLoop(flagFlipFunction) {
     }
     var pageInfo = getPageInfo();
 
-    // TODO: Update pageInfo to have actual author username instead of useless id in post objects.
     // push top poster username to top posters array
     var pagePostLinks = getElementsLikeLink("/p/");
 
@@ -359,15 +353,11 @@ function saveTagPageLoop(flagFlipFunction) {
             // save local data for safe keeping
             saveLocalData(localData);
 
-            // TODO: 
-            // add missing users as tag interested
-
             interestMassSet(thisTagInterested, curTag, function () {
                 // success
                 // add tag to database
                 tagSet(pageInfo.name, pageInfo.numPosts, function () {
                     // success
-                    // TODO: Save this as a tag object you fkn dingus
                     logEvent(0, "Saved " + pageInfo.name + " to database.");
                     localData.operation.lists.tagPages.push(pageInfo);
                     // increment index and reload page. Check for out of bounds index is at beginning of function
@@ -448,22 +438,24 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     // TODO: Fine tune wait times
     var waitOnPage = 3000;
 
-    // TODO: Update to pull potential follows from db and if not enough users, then update the database and try again
-    // TODO: UserMassSet
+    // TODO: Update to pull potential follows for which to scrape from db and if not enough users have been scraped yet, then update the database and try again
 
     // check if we have scraped enough users
     if (localData.operation.lists.scrapedUsersCount >= MAX_USER_SCRAPE) {
         // save the scraped users array to the database, clear the scrape and missing user arrays, and pop out of the loop
+        // TODO: Ajax call here and save local data
+        flagFlipFunction();
+        return;
 
     }
 
     // make sure we have users to scrape
-    if (localData.operation.lists.missingUsers.length <= 0) {
-        // TODO: Grab only relevant tag missing users
-        // we haven't filled out missingUsers array yet. Lets take care of that before moving on.
+    if (localData.operation.lists.missingUsersIndex >= localData.operation.lists.missingUsers.length) {
+        // Missing users array is all done, query for more users
         userGetMissing(localData.user.tagInterests, 250, function (response) {
             // success
             localData.operation.lists.missingUsers = response;
+            localData.operation.lists.missingUsersIndex = 0;
             // reload page to start loop back at beginning.
             // Not necessary but keeps code clean.
             saveLocalData(localData);
@@ -475,14 +467,6 @@ function savePotentialFollowsLoop(flagFlipFunction) {
             location.reload();
             return true;
         });
-        return;
-    }
-
-    // check if we reached the end of the array of missing people
-    if (localData.operation.lists.missingUsersIndex >= localData.operation.lists.missingUsers.length) {
-        // were done filling in potential follows info
-        localData.operation.lists.missingUsersIndex = 0;
-        flagFlipFunction();
         return;
     }
 
@@ -505,7 +489,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         localData.operation.lists.missingUsersIndex++;
         saveLocalData(localData);
         if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
-            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";            
+            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
         return;
     }
 
@@ -520,6 +504,8 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     delete pageInfo.type;
     delete pageInfo.posts;
 
+    // TODO: Increment missing index regardless of dropping into block below to save chunk
+    // TODO: Set to send users to db in blocks of 10 instead of 1 by 1. Update saved counter on success.
     // add user to database
     userSet(pageInfo.userId, pageInfo.numPosts, pageInfo.numFollowers, pageInfo.numFollowing, pageInfo.profilePic, pageInfo.realName, pageInfo.bio, pageInfo.website, function () {
         // success
@@ -895,8 +881,7 @@ function scrollBottom(container, expectedSize, old_li_count, li_matches, index, 
         li_matches = 0;
 
     // stop if we have looped for more than 100 seconds
-    // or hit at least 1000 follows in the list
-    // TODO: Better solution than hardcoding in 1000 limit
+    // or hit at least expected size
     if (index > 300 || li_count > expectedSize ) {
         callback();
         return;
@@ -1102,6 +1087,7 @@ function getLocalData() {
     	data.operation.lists.tagPageTopPosterIndex = 0;
 
         data.operation.lists.missingUsers = [];
+        operation.lists.missingUsersIndex = 0;
         data.operation.lists.scrapedUsersCount = 0;
         data.operation.lists.scrapedUsers = [];
 
@@ -1135,7 +1121,7 @@ function saveLocalData(data) {
     localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
 }
 
-// TODO: Save local data object to the database with username as key
+// TODO: Save local data object to the database with username as key for stable pulling of localStorage
 function sendUserObjToDB(userObj, success, error) {
     // get counts for db responses
     var expectedReturns = 2;
@@ -1534,7 +1520,6 @@ function tagGet(tag, success, error) {
 }
 
 function interestMassSet(users, tag, success, error) {
-    // TODO: Make user into an array of users
     jQuery.post({
         url: api_url + "/interest/set/mass_set.php",
         data: {
@@ -1556,7 +1541,6 @@ function interestMassSet(users, tag, success, error) {
 }
 
 function interestSet(user, tag, success, error) {
-    // TODO: Make user into an array of users
     jQuery.post({
         url: api_url + "/interest/set/",
         data: {
