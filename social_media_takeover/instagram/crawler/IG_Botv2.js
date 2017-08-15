@@ -23,37 +23,47 @@
 // TODO: Split get page info into the three different functions it can call
 //  then make the get user have var for whether we need posts or not.
 
-// TODO: Update missing users query to grab tag interested
+// TODO: Sanitize your fkn database
 
 // TODO: logEvents should have a callback
 
-// TODO: Add timeout to check if we are stuck
 // TODO: Add "loaded same page X times in a row" error to check if we are stuck reloading the same page.
+
+// TODO: Optimize heavy duty sql queries
+
+// TODO: prevent duplicate tag page (last tage pages is added to array twice?
+
+// TODO: prevent end of missing users from infinite looping
+
+// TODO: Minimize localStorage size and number of requests made by keeping counters stored in local storage
+// and only grabbing a portion of the chunk you need from database (ie grab 100/8000 and use counter to keep track)
+// and periodically dump to database and clear local storage (scrapped users, error log, ect)
+// when saving an obj from an array, pop it off to clear and read.
 
 // Global variables
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var localData;
+var MAX_USER_SCRAPE = 2000;
 
 // main function for bot to run
 function main() {
     // get local data
     localData = getLocalData();
 
+    // checks to make sure we arent looping on the same page aimlessly
+    if (checkForStuckPage()) {
+        console.log("We looped on this page 5 times.");
+        return false;
+    }
+
     // run daily tasks if needed
     // these tasks prep the user for the follow/like phase
+    saveLocalData(localData);
+  
     if (checkAndRunDailyTasks())
         return false;
-    else
-    	alert("Done with daily tasks.");
 
-    saveLocalData(localData);
-
-    // if we have been sitting for 30 minutes, reload the page, we are stuck.
-    setTimeout(function () {
-        logEvent(2, "We timed out on the page. Look into that. Here is the localData.operation.flags array: " + JSON.stringify(localData.operation.flags));
-        location.reload();
-    }, 1000 * 60 * 30);
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
@@ -185,12 +195,15 @@ function clearDailyTotals() {
     localData.operation.lists.tagPages = [];
     localData.operation.lists.tagPagesIndex = 0;
     localData.operation.lists.tagPageTopPosterIndex = 0;
+
     localData.operation.lists.missingUsers = [];
-    localData.operation.lists.missingUsersIndex = 0;
+    localData.operation.lists.scrapedUsersCount = 0;
+    localData.operation.lists.scrapedUsers = [];
+
     localData.operation.lists.followList = [];
-    localData.operation.lists.followListndex = 0;
+    localData.operation.lists.followListIndex = 0;
     localData.operation.lists.unfollowList = [];
-    localData.operation.lists.unfollowListndex = 0;
+    localData.operation.lists.unfollowListIndex = 0;
 
     localData.operation.errorLog = [];
     localData.operation.dailyLikes = 0;
@@ -432,13 +445,23 @@ function findTopTagFollowingLoop(flagFlipFunction){
 // takes a potential follower and saves them to the database
 function savePotentialFollowsLoop(flagFlipFunction) {
 
+    // TODO: Fine tune wait times
+    var waitOnPage = 3000;
+
     // TODO: Update to pull potential follows from db and if not enough users, then update the database and try again
+    // TODO: UserMassSet
+
+    // check if we have scraped enough users
+    if (localData.operation.lists.scrapedUsersCount >= MAX_USER_SCRAPE) {
+        // save the scraped users array to the database, clear the scrape and missing user arrays, and pop out of the loop
+
+    }
 
     // make sure we have users to scrape
-    if (localData.operation.lists.missingUsers.length < 1000) {
+    if (localData.operation.lists.missingUsers.length <= 0) {
         // TODO: Grab only relevant tag missing users
         // we haven't filled out missingUsers array yet. Lets take care of that before moving on.
-        userGetMissing(localData.user.tagInterests, 1500 - localData.operation.lists.missingUsers.length, function (response) {
+        userGetMissing(localData.user.tagInterests, 250, function (response) {
             // success
             localData.operation.lists.missingUsers = response;
             // reload page to start loop back at beginning.
@@ -454,6 +477,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         });
         return;
     }
+
     // check if we reached the end of the array of missing people
     if (localData.operation.lists.missingUsersIndex >= localData.operation.lists.missingUsers.length) {
         // were done filling in potential follows info
@@ -492,6 +516,10 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         return;
     }
 
+    // get rid of extra stuff we wont need.
+    delete pageInfo.type;
+    delete pageInfo.posts;
+
     // add user to database
     userSet(pageInfo.userId, pageInfo.numPosts, pageInfo.numFollowers, pageInfo.numFollowing, pageInfo.profilePic, pageInfo.realName, pageInfo.bio, pageInfo.website, function () {
         // success
@@ -502,7 +530,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
         localData.operation.lists.missingUsersIndex++;
         saveLocalData(localData);
 
-        // stay on the page for 2 seconds to avoid a 429
+        // stay on the page to avoid a 429
         setTimeout(function () {
             // if we still have missing users, go to the next user
             // otherwise reload the page and figure out life
@@ -511,7 +539,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
             else
                 location.reload();
             return;
-        }, 2000);
+        }, waitOnPage);
 
     }, function () {
         // error
@@ -1033,16 +1061,16 @@ function logEvent(msgType, msg, callback) {
         case 1:
             console.log(timeStamp + ": Warning \"" + msg + "\"");
             localData.operation.errorLog.push(timeStamp + ": Warning \"" + msg + "\"");
+            setLog(timeStamp.getTime(), msgType, msg, callback);
             break;
         case 2:
             console.log(timeStamp + ": Error \"" + msg + "\"");
             localData.operation.errorLog.push(timeStamp + ": Error \"" + msg + "\"");
+            setLog(timeStamp.getTime(), msgType, msg, callback);
             break;
         default:
             console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
-            localData.operation.errorLog.push(timeStamp + ": Unknown Message Type \"" + msg + "\"");
     }
-    setLog(timeStamp.getTime(), msgType, msg, callback);
 }
 
 // returns either the local storage item or defaults to a new localData object
@@ -1074,7 +1102,8 @@ function getLocalData() {
     	data.operation.lists.tagPageTopPosterIndex = 0;
 
         data.operation.lists.missingUsers = [];
-        data.operation.lists.missingUsersIndex = 0;
+        data.operation.lists.scrapedUsersCount = 0;
+        data.operation.lists.scrapedUsers = [];
 
         data.operation.lists.followList = [];
         data.operation.lists.followListIndex = 0;
@@ -1089,6 +1118,8 @@ function getLocalData() {
         data.operation.globalFollows = 0;
         data.operation.dailyTimer = 0;
         data.operation.dailyTaskCounter = 0;
+        data.operation.pageStuckUrl = "";
+        data.operation.pageStuckCounter = 0;
 
         localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
         // logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
@@ -1144,6 +1175,43 @@ function sendUserObjToDB(userObj, success, error) {
     }
 }
 
+// Waits a bit and then throws timeout error and reloads page
+function setPageTimeout(waitTime, errorMessage) {
+
+    setTimeout(function () {
+        logEvent(2, errorMessage);
+        location.reload();
+    }, waitTime);
+}
+
+// checks to make sure we havent reloaded the same page 5 times
+function checkForStuckPage() {
+
+    var stuckUrl = localData.operation.pageStuckUrl;
+    var curUrl = location.href;
+
+    // check if we are on the same page still
+    if (curUrl == stuckUrl) {
+        // increment counter
+        localData.operation.pageStuckCounter++;
+    }
+    else {
+        // we moved, reset the counter and update old url
+        localData.operation.pageStuckCounter = 0;
+        localData.operation.pageStuckUrl = curUrl;
+    }
+
+    // check if we reloaded 5 or more times
+    if (localData.operation.pageStuckCounter >= 5) {
+        // shit boi, we in a hecka situation here
+        logEvent(2, "Stuck looping on page: " + curUrl, null);
+        alert("Stopped! We are stuck looping on this page.");
+        return true;
+    }
+        // return false if we arent stuck
+    else
+        return false;
+}
 
 /***********************************************
 *************** AJAX Functions *****************
