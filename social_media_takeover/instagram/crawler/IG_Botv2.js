@@ -25,6 +25,11 @@
 
 // TODO: Update missing users query to grab tag interested
 
+// TODO: logEvents should have a callback
+
+// TODO: Add timeout to check if we are stuck
+// TODO: Add "loaded same page X times in a row" error to check if we are stuck reloading the same page.
+
 // Global variables
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
@@ -43,6 +48,12 @@ function main() {
     	alert("Done with daily tasks.");
 
     saveLocalData(localData);
+
+    // if we have been sitting for 30 minutes, reload the page, we are stuck.
+    setTimeout(function () {
+        logEvent(2, "We timed out on the page. Look into that. Here is the localData.operation.flags array: " + JSON.stringify(localData.operation.flags));
+        location.reload();
+    }, 1000 * 60 * 30);
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
@@ -83,8 +94,9 @@ function checkAndRunDailyTasks() {
     // PRELIMINARY TEST PASSED
     // scrape current user for info
     if (!localData.operation.flags.scrapeCurUser) {
+        console.log("Running scrapeCurUser. Task counter: " + localData.operation.dailyTaskCounter);
         // console.log("scrapeCurUser: " + localData.operation.flags.scrapeCurUser);
-        updateUserInfo(localData.user.userId, function (userObj) {
+        updateUserInfo(localData.user.userId, 1000, 1000, function (userObj) {
             if (!userObj) {
                 // reload page and try again
                 saveLocalData(localData);
@@ -112,6 +124,7 @@ function checkAndRunDailyTasks() {
 
     // PRELIMINARY TEST PASSED
     if (!localData.operation.flags.scrapeTagPage) {
+        console.log("Running scrapeTagPage. Task counter: " + localData.operation.dailyTaskCounter);
         // call tag page loop
         saveTagPageLoop(function () {
             // function to take care of flipping flags to next task when this loop is done.
@@ -128,7 +141,9 @@ function checkAndRunDailyTasks() {
     
     // PRELIMINARY TEST PASSED
     // scrape top poster follow base for tag interested users
-    if (!localData.operation.flags.findTopTagFollowing) {
+    // this one is going to be a shitload of requests. Set to run every 40th
+    if (!localData.operation.flags.findTopTagFollowing && localData.operation.dailyTaskCounter % 40 == 0) {
+        console.log("Running findTopTagFollowing. Task counter: " + localData.operation.dailyTaskCounter);
     	// run loop to scrape all top posters
         findTopTagFollowingLoop(function () {
             // flip current task flag to completed
@@ -142,9 +157,10 @@ function checkAndRunDailyTasks() {
     }
     // PRELIMINARY TEST PASSED
 
-    // COMPLETED
     // go to potential users and scrape basic info with no follow base
+    // we got a shitload of these followers to scrape, so don't worry about flipping away from this task with an %mod
     if (!localData.operation.flags.scrapePotentialFollows) {
+        console.log("Running scrape potential follows. Task counter: " + localData.operation.dailyTaskCounter);
         savePotentialFollowsLoop(function () {
             // flip task to like/follow users and reload page
             localData.operation.flags.scrapePotentialFollows = 1;
@@ -154,7 +170,6 @@ function checkAndRunDailyTasks() {
         // Let callback handle page reload
         return true;
     }
-    // COMPLETED
 
     // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
     localData.operation.dailyTimer += millisecondsInADay;
@@ -186,12 +201,13 @@ function clearDailyTotals() {
     localData.operation.errorLog = [];
     localData.operation.dailyLikes = 0;
     localData.operation.dailyFollows = 0;
+    localData.operation.dailyTaskCounter = 0;
 
     localData.user.tagInterestsIndex = 0;
 }
 
 // navigate to user page and add all their info to the database, then switch task flag to nextTask
-function updateUserInfo(user, callback) {
+function updateUserInfo(user, max_followers_expansion, max_following_expansion, callback) {
 
     // navigate to correct page
     if (location.href.indexOf(user) == -1) {
@@ -209,7 +225,7 @@ function updateUserInfo(user, callback) {
     }
 
     // scrape user follow base
-    getUserFollowBase(pageInfo, function (response) {
+    getUserFollowBase(pageInfo, max_followers_expansion, max_following_expansion, function (response) {
 
         pageInfo.followerBase = response;
         // remove the page type from the user object. We dont need it anymore.
@@ -329,10 +345,8 @@ function saveTagPageLoop(flagFlipFunction) {
         }, function () {
             // loop finished
 
-            console.log("Check page info object: ");
-            console.log(pageInfo);
-
             // update the localdata object
+            localData.operation.dailyTaskCounter++;
             localData.operation.lists.tagPagesIndex = localData.user.tagInterestsIndex;
             localData.operation.lists.tagPages[localData.operation.lists.tagPagesIndex] = pageInfo;
             // save local data for safe keeping
@@ -395,13 +409,14 @@ function findTopTagFollowingLoop(flagFlipFunction){
 		// were done with this tag.
 		localData.operation.lists.tagPageTopPosterIndex = 0;
 		localData.operation.lists.tagPagesIndex++;
+		saveLocalData(localData);
 		location.reload();
 		return;
 	}
 
 	var curUser = curTagPage.topPosts[topPosterIndex].owner;
 
-	updateUserInfo(curUser, function(userObj){
+	updateUserInfo(curUser, 1000, 9, function(userObj){
 		// set tag interested in database
 		interestMassSet(userObj.followerBase.followers, curTagPage.name, function(){
 			// success
@@ -425,23 +440,24 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     // TODO: Update to pull potential follows from db and if not enough users, then update the database and try again
 
     // make sure we have users to scrape
-    if (localData.operation.lists.missingUsers.length == 0) {
+    if (localData.operation.lists.missingUsers.length < 1000) {
         // TODO: Grab only relevant tag missing users
         // we haven't filled out missingUsers array yet. Lets take care of that before moving on.
-        userGetMissing(localData.user.tagInterests, 2000, function (response) {
+        userGetMissing(localData.user.tagInterests, 1500 - localData.operation.lists.missingUsers.length, function (response) {
             // success
             localData.operation.lists.missingUsers = response;
             // reload page to start loop back at beginning.
             // Not necessary but keeps code clean.
             saveLocalData(localData);
             location.reload();
-        }, function () {
+        }, function (error) {
             // error
             logEvent(2, "Daily Tasks: Couldn't get list of missing users.");
             saveLocalData(localData);
             location.reload();
             return true;
         });
+        return;
     }
     // check if we reached the end of the array of missing people
     if (localData.operation.lists.missingUsersIndex >= localData.operation.lists.missingUsers.length) {
@@ -455,14 +471,28 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     var curMissUser = localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id;
     // check we are on the right page
     if (location.href.indexOf(curMissUser) == -1) {
+
         // not at the right location. Navigate.
         saveLocalData(localData);
         location.href = "https://www.instagram.com/" + curMissUser + "/";
         return;
     }
 
+    // check we haven't 404'ed
+    if (getElementsLikeHtml("p", "The link you followed may be broken, or the page may have been removed.").length > 0) {
+        // we 404'ed
+        logEvent(2, "The user's page no longer exists: " + curMissUser);
+        // go to next user
+        localData.operation.lists.missingUsersIndex++;
+        saveLocalData(localData);
+        if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
+            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";            
+        return;
+    }
+
     var pageInfo = getPageInfo();
     if (pageInfo == null) {
+        saveLocalData(localData);
         location.reload();
         return;
     }
@@ -470,12 +500,23 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     // add user to database
     userSet(pageInfo.userId, pageInfo.numPosts, pageInfo.numFollowers, pageInfo.numFollowing, pageInfo.profilePic, pageInfo.realName, pageInfo.bio, pageInfo.website, function () {
         // success
+        localData.operation.dailyTaskCounter++;
         logEvent(0, "Saved " + pageInfo.userId + " to database.");
 
-        // increment index and reload page. Check for out of bounds index is at beginning of function
+        // increment index
         localData.operation.lists.missingUsersIndex++;
         saveLocalData(localData);
-        location.reload();
+
+        // stay on the page for 2 seconds to avoid a 429
+        setTimeout(function () {
+            // if we still have missing users, go to the next user
+            // otherwise reload the page and figure out life
+            if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
+                location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
+            else
+                location.reload();
+            return;
+        }, 2000);
 
     }, function () {
         // error
@@ -523,6 +564,7 @@ function getPageInfo() {
             logEvent(2, "getPageInfo: Could not find pageType. URL: " + url);
             pageInfo = null;
     }
+
 
     // make sure we got page info
     if (pageInfo == null)
@@ -736,9 +778,9 @@ function getUserPosts() {
 }
 
 // scrapes followers and following and calls callback. Callback has 1 object with 2 variables for followers and following arrays
-function getUserFollowBase(userObj, callback) {
+function getUserFollowBase(userObj, max_followers_expansion, max_following_expansion, callback) {
     // get the followers userbase
-    getUserFollowBaseHelper(userObj, 0, {}, function (results) {
+    getUserFollowBaseHelper(userObj, 0, max_followers_expansion, {}, function (results) {
         // close opened menu
         var closeBtn = getElementsByHtml("Button", "Close")[0];
         if (typeof closeBtn != "undefined")
@@ -746,7 +788,7 @@ function getUserFollowBase(userObj, callback) {
         // make sure the close button has closed the opened div
         elementNotExists(getElementsByHtml("Button", "Close")[0], function () {
             // get the following base
-            getUserFollowBaseHelper(userObj, 1, results, function (results_2) {
+            getUserFollowBaseHelper(userObj, 1, max_following_expansion, results, function (results_2) {
                 // when its done, close the div again
                 var closeBtn = getElementsByHtml("Button", "Close")[0];
                 if (typeof closeBtn != "undefined")
@@ -760,7 +802,7 @@ function getUserFollowBase(userObj, callback) {
     });
 }
 
-function getUserFollowBaseHelper(userObj, followFlag, results, callback) {
+function getUserFollowBaseHelper(userObj, followFlag, max_list_expansion, results, callback) {
 
     if (followFlag == 0)
         getElementsLikeLink("/followers/")[0].click();
@@ -783,14 +825,14 @@ function getUserFollowBaseHelper(userObj, followFlag, results, callback) {
         else
             container = $(getElementsByHtml("div", "Following")[0]).parent().find("ul").parent();
 
-        var expectedSize = 1000;
+        var expectedSize = max_list_expansion;
         if (followFlag == 0)
             expectedSize = userObj.numFollowers;
         else
             expectedSize = userObj.numFollowing;
 
-        if (expectedSize > 1000)
-            expectedSize = 1000;
+        if (expectedSize > max_list_expansion)
+            expectedSize = max_list_expansion;
 
         scrollBottom(container, expectedSize, 0, 0, 0, function () {
 
@@ -832,7 +874,7 @@ function scrollBottom(container, expectedSize, old_li_count, li_matches, index, 
     // stop if we have looped for more than 100 seconds
     // or hit at least 1000 follows in the list
     // TODO: Better solution than hardcoding in 1000 limit
-    if( index > 500 || li_count > 1000 || ((li_matches >=5)  && (li_count > 0.95*expectedSize)) ){
+    if (index > 300 || li_count > expectedSize ) {
         callback();
         return;
     }
@@ -845,7 +887,9 @@ function scrollBottom(container, expectedSize, old_li_count, li_matches, index, 
     else {
         container.scrollTop(container.height() + 99999);
         index++;
-        setTimeout(function () { scrollBottom(container, expectedSize, li_count, li_matches, index, callback); }, 200);
+        // slowDownFactor of 1 results in a 429 from instagram.
+        var slowDownFactor = 3;
+        setTimeout(function () { scrollBottom(container, expectedSize, li_count, li_matches, index, callback); }, slowDownFactor*200);
         return;
     }
 }
@@ -1003,7 +1047,7 @@ function logEvent(msgType, msg, callback) {
             console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
             localData.operation.errorLog.push(timeStamp + ": Unknown Message Type \"" + msg + "\"");
     }
-    // setLog(timeStamp.getTime(), msgType, msg);
+    setLog(timeStamp.getTime(), msgType, msg, callback);
 }
 
 // returns either the local storage item or defaults to a new localData object
@@ -1049,6 +1093,7 @@ function getLocalData() {
         data.operation.globalLikes = 0;
         data.operation.globalFollows = 0;
         data.operation.dailyTimer = 0;
+        data.operation.dailyTaskCounter = 0;
 
         localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
         // logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
@@ -1235,25 +1280,6 @@ function userGet(user, success, error) {
     });
 }
 
-function userGetMissing(limit, success, error) {
-    jQuery.post({
-        url: api_url + "/user/get/missing.php",
-        data: {
-            scrape_limit: limit
-        },
-        success: function (result) {
-            result = JSON.parse(result);
-            if (result)
-                success(result);
-            else
-                error();
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
-        }
-    });
-}
-
 function userGetMissing(tagInterests, limit, success, error) {
     jQuery.post({
         url: api_url + "/user/get/missing.php",
@@ -1265,11 +1291,12 @@ function userGetMissing(tagInterests, limit, success, error) {
             result = JSON.parse(result);
             if (result)
                 success(result);
-            else
-                error();
+            else {
+                logEvent(2, ": Error trying to get missing users.", function () { error(); });
+            }
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            logEvent(2, "Couldnt get missing users from database: " + textStatus + " " + jqXHR.status + " " + errorThrown, function () { error(textStatus + " " + jqXHR.status + " " + errorThrown); });
         }
     });
 }
@@ -1590,7 +1617,7 @@ function commentGet(post, success, error) {
     });
 }
 
-function setLog(timestamp, logType, log) {
+function setLog(timestamp, logType, log, callback) {
     jQuery.post({
         url: api_url + "/log/set/",
         data: {
@@ -1604,37 +1631,12 @@ function setLog(timestamp, logType, log) {
                 console.log(timeStamp + ": Error \"" + msg + "\"");
                 localData.operation.errorLog.Add(timeStamp + ": Error \"Unable to save log to database.\"");
             }
+            callback();
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.log(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
             localData.operation.errorLog.Add(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
+            callback();
         }
     });
 }
-
-/*
-
-TODO: 
-    Finish follows ajax calls
-    Add tags in post as new table and implement for better analysis
-
-// generic ajax call format.
-$.ajax({
-    url: api_url + "/path/to/call/",
-    type: "POST",
-    data: {
-    // TODO
-    },
-    success: function( result ){
-    result = JSON.parse(result);
-    if( result )
-        success();
-    else
-        error();
-    },
-    error: function( jqXHR, textStatus, errorThrown ){
-    logEvent(2,  textStatus + " " + jqXHR.status + " " + errorThrown );
-    }
-    }
-});
-*/
