@@ -80,7 +80,7 @@ function checkAndRunDailyTasks() {
     if (!localData.operation.flags.dailyCleared)
         clearDailyTotals();
 
-    // COMPLETED
+    // PRELIMINARY TEST PASSED
     // scrape current user for info
     if (!localData.operation.flags.scrapeCurUser) {
         // console.log("scrapeCurUser: " + localData.operation.flags.scrapeCurUser);
@@ -108,9 +108,9 @@ function checkAndRunDailyTasks() {
         // return true. Let callback handle page reload
         return true;
     }
-    // COMPLETED
+    // PRELIMINARY TEST PASSED
 
-    // COMPLETED
+    // PRELIMINARY TEST PASSED
     if (!localData.operation.flags.scrapeTagPage) {
         // call tag page loop
         saveTagPageLoop(function () {
@@ -123,10 +123,10 @@ function checkAndRunDailyTasks() {
         // Let callback handle page reload
         return true;
     }
-    // COMPLETED
+    // PRELIMINARY TEST PASSED
 
     
-    // COMPLETED
+    // PRELIMINARY TEST PASSED
     // scrape top poster follow base for tag interested users
     if (!localData.operation.flags.findTopTagFollowing) {
     	// run loop to scrape all top posters
@@ -140,7 +140,7 @@ function checkAndRunDailyTasks() {
         // return true. Let callback handle page reload
         return true;
     }
-    // COMPLETED
+    // PRELIMINARY TEST PASSED
 
     // COMPLETED
     // go to potential users and scrape basic info with no follow base
@@ -403,7 +403,7 @@ function findTopTagFollowingLoop(flagFlipFunction){
 
 	updateUserInfo(curUser, function(userObj){
 		// set tag interested in database
-		interestMassSet(userObj.followers, curTagPage.name, function(){
+		interestMassSet(userObj.followerBase.followers, curTagPage.name, function(){
 			// success
 			localData.operation.lists.tagPageTopPosterIndex++;
 			saveLocalData(localData);
