@@ -101,6 +101,7 @@ function checkAndRunDailyTasks() {
     if (!localData.operation.flags.dailyCleared)
         clearDailyTotals();
 
+    // PRELIMINARY TEST PASSED
     // scrape current user for info
     if (!localData.operation.flags.scrapeCurUser) {
         console.log("Running scrapeCurUser. Task counter: " + localData.operation.dailyTaskCounter);
@@ -129,8 +130,9 @@ function checkAndRunDailyTasks() {
         // return true. Let callback handle page reload
         return true;
     }
+    // PRELIMINARY TEST PASSED
 
-    // no need to limit tag page scraping as isnt a ton of requests and will give us some missing users to scrap when waiting on finding top tag following
+    // PRELIMINARY TEST PASSED
     if (!localData.operation.flags.scrapeTagPage) {
         console.log("Running scrapeTagPage. Task counter: " + localData.operation.dailyTaskCounter);
         // call tag page loop
@@ -144,7 +146,10 @@ function checkAndRunDailyTasks() {
         // Let callback handle page reload
         return true;
     }
+    // PRELIMINARY TEST PASSED
 
+    
+    // PRELIMINARY TEST PASSED
     // scrape top poster follow base for tag interested users
     // this one is going to be a shitload of requests. Set to run every 40th
     if (!localData.operation.flags.findTopTagFollowing && localData.operation.dailyTaskCounter % 40 == 0) {
@@ -160,6 +165,7 @@ function checkAndRunDailyTasks() {
         // return true. Let callback handle page reload
         return true;
     }
+    // PRELIMINARY TEST PASSED
 
     // go to potential users and scrape basic info with no follow base
     // we got a shitload of these followers to scrape, so don't worry about flipping away from this task with an %mod
@@ -426,8 +432,7 @@ function findTopTagFollowingLoop(flagFlipFunction){
 	updateUserInfo(curUser, 1000, 9, function(userObj){
 		// set tag interested in database
 		interestMassSet(userObj.followerBase.followers, curTagPage.name, function(){
-		    // success
-		    localData.operation.dailyTaskCounter++;
+			// success
 			localData.operation.lists.tagPageTopPosterIndex++;
 			saveLocalData(localData);
 			location.reload();

@@ -3,7 +3,7 @@
 
 require getcwd().'/../../lib/h.php';
 
-if( isset( $_POST["user_id"] ) && isset( $_POST["num_follows"] ) isset($_POST["tag_name"];) ){
+if( isset( $_POST["user_id"] ) && isset( $_POST["num_follows"] ) && isset($_POST["tag_name"]) ){
 
 	$user_id = $_POST["user_id"];
 	$num_follows = $_POST["num_follows"];
