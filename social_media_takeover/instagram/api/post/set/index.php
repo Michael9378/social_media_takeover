@@ -9,7 +9,7 @@ if( isset( $_POST["post_id"] ) && isset( $_POST["user_id"] ) ){
 	$user_id = $_POST["user_id"];
 	$post_time = $_POST["post_time"];
 	$post_num_likes = $_POST["post_num_likes"];
-	$post_description = $_POST["post_description"];
+	$post_description = str_replace("'", "", $_POST["post_description"]);
 	$post_is_video = $_POST["post_is_video"];
 	$date = date("Y/m/d");
 

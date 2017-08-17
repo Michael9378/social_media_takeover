@@ -20,9 +20,9 @@ if( isset( $_POST["users"] ) ){
 		$user_num_followers = $user->numFollowers;
 		$user_num_following = $user->numFollowing;
 		$user_profile_pic = $user->profilePic;
-		$user_real_name = $user->realName;
-		$user_bio = $user->bio;
-		$user_website = $user->website;
+		$user_real_name = str_replace("'", "", $user->realName);
+		$user_bio = str_replace("'", "", $user->bio);
+		$user_website = str_replace("'", "", $user->website);
 
 		$sql .= "('".$user_id."', ".$user_num_posts.", ".$user_num_followers.", ".$user_num_following.", '".$user_profile_pic."', '".$user_real_name."', '".$user_bio."', '".$user_website."', '".$date."'), ";
 

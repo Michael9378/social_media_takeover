@@ -10,9 +10,9 @@ if( isset( $_POST["user_id"] ) ){
 	$user_num_followers = $_POST["user_num_followers"];
 	$user_num_following = $_POST["user_num_following"];
 	$user_profile_pic = $_POST["user_profile_pic"];
-	$user_real_name = $_POST["user_real_name"];
-	$user_bio = $_POST["user_bio"];
-	$user_website = $_POST["user_website"];
+	$user_real_name = str_replace("'", "", $_POST["user_real_name"]);
+	$user_bio = str_replace("'", "", $_POST["user_bio"]);
+	$user_website = str_replace("'", "", $_POST["user_website"]);
 	$date = date("Y/m/d");
 
 	$sql = "INSERT INTO `ig_users` ";
