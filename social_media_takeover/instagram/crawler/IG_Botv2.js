@@ -51,13 +51,11 @@ function main() {
         return false;
     }
 
-    // run daily tasks if needed
-    // these tasks prep the user for the follow/like phase
-    saveLocalData(localData);
-  
+    // run daily tasks if needed  
     if (checkAndRunDailyTasks())
         return false;
 
+    console.log("Success!");
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
@@ -528,10 +526,10 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     function goToNextUser() {
         // increment missing user index
         localData.operation.lists.missingUsersIndex++;
-        // save local data
-        saveLocalData(localData);
         // we did something
         localData.operation.dailyTaskCounter++;
+        // save local data
+        saveLocalData(localData);
 
         // stay on the page to avoid a 429
         setTimeout(function () {
@@ -1095,7 +1093,7 @@ function getLocalData() {
     	data.operation.lists.tagPageTopPosterIndex = 0;
 
         data.operation.lists.missingUsers = [];
-        operation.lists.missingUsersIndex = 0;
+        data.operation.lists.missingUsersIndex = 0;
         data.operation.lists.scrapedUsersCount = 0;
         data.operation.lists.scrapedUsers = [];
 
@@ -1322,7 +1320,7 @@ function userMassSet(users, success, error) {
     jQuery.post({
         url: api_url + "/user/set/mass_set.php",
         data: {
-            users: users
+            users: JSON.stringify(users)
         },
         success: function (result) {
             result = JSON.parse(result);
