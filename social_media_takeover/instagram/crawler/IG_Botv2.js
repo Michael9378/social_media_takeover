@@ -23,21 +23,19 @@
 // TODO: Split get page info into the three different functions it can call
 //  then make the get user have var for whether we need posts or not.
 
-// TODO: Sanitize your fkn database
-
 // TODO: logEvents should have a callback
 
 // TODO: Optimize heavy duty sql queries
 
-// TODO: prevent duplicate tag page (last tage pages is added to array twice?
-
-// TODO: prevent end of missing users from infinite looping
+// TODO: Make use of the queries that ig provides in smart function below
 
 // Global variables
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var localData;
 var MAX_USER_SCRAPE = 2000;
+// TODO: Fine tune wait times
+var WAIT_ON_PAGE_TIME = 3000;
 
 // main function for bot to run
 function main() {
@@ -292,7 +290,7 @@ function saveTagPageLoop(flagFlipFunction) {
     // open first top post
     pagePostLinks[0].click();
 
-    timeoutLoop(0, 9, 1500, function () {
+    timeoutLoop(0, 9, WAIT_ON_PAGE_TIME, function () {
         // loop function
 
         var usernames = $("body").find("a[title]");
@@ -318,7 +316,7 @@ function saveTagPageLoop(flagFlipFunction) {
         // do it again with the recent posters
         // first of most recents should already be open from last of previous timeout loop
 
-        timeoutLoop(9, 21, 1500, function () {
+        timeoutLoop(9, 21, WAIT_ON_PAGE_TIME, function () {
             // loop function
 
             var usernames = $("body").find("a[title]");
@@ -433,9 +431,6 @@ function findTopTagFollowingLoop(flagFlipFunction){
 // takes a potential follower and saves them to the database
 function savePotentialFollowsLoop(flagFlipFunction) {
 
-    // TODO: Fine tune wait times
-    var waitOnPage = 3000;
-
     // TODO: Update to pull potential follows for which to scrape from db and if not enough users have been scraped yet, then update the database and try again
 
     // check if we have scraped enough users
@@ -539,7 +534,7 @@ function savePotentialFollowsLoop(flagFlipFunction) {
                 location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
             else
                 location.reload();
-        }, waitOnPage);
+        }, WAIT_ON_PAGE_TIME);
     }
 }
 
@@ -641,6 +636,7 @@ function getUserPageInfo(needPosts) {
         // 2 = post page
         // 3 = tag page
         userObj.type = 1;
+        userObj.ig_id = shortCut.id;
         userObj.userId = shortCut.username;
         userObj.numPosts = shortCut.media.count;
         userObj.posts = shortCut.media.nodes;
@@ -790,6 +786,24 @@ function getUserPosts() {
         posts.push(post_node);
     }
     return posts;
+}
+
+// replaces scrape user functions below
+function smartGetUserFollowBase(ig_id, callback) {
+    // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
+
+    // QUERY ID'S
+    // Followers:   17851374694183129
+    // Following:   1787454532300132
+    // User Posts:  17888483320059182
+    // Tag Posts:   17875800862117404
+
+    // VARIABLES
+    // tag_name:    Needed for tag queries
+    // first:       Number of posts to pull
+    // id:          User id
+
+    var getUrl = "https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%22"+ig_id+"%22,%22first%22:"+num_followers+"}";
 }
 
 // scrapes followers and following and calls callback. Callback has 1 object with 2 variables for followers and following arrays
