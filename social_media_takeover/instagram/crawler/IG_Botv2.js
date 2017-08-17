@@ -191,7 +191,7 @@ function clearDailyTotals() {
     localData.operation.lists.tagPageTopPosterIndex = 0;
 
     localData.operation.lists.missingUsers = [];
-    operation.lists.missingUsersIndex = 0;
+    localData.operation.lists.missingUsersIndex = 0;
     localData.operation.lists.scrapedUsersCount = 0;
     localData.operation.lists.scrapedUsers = [];
 
@@ -504,17 +504,34 @@ function savePotentialFollowsLoop(flagFlipFunction) {
     delete pageInfo.type;
     delete pageInfo.posts;
 
-    // TODO: Increment missing index regardless of dropping into block below to save chunk
-    // TODO: Set to send users to db in blocks of 10 instead of 1 by 1. Update saved counter on success.
-    // add user to database
-    userSet(pageInfo.userId, pageInfo.numPosts, pageInfo.numFollowers, pageInfo.numFollowing, pageInfo.profilePic, pageInfo.realName, pageInfo.bio, pageInfo.website, function () {
-        // success
-        localData.operation.dailyTaskCounter++;
-        logEvent(0, "Saved " + pageInfo.userId + " to database.");
+    // push this user to the scraped users array
+    localData.operation.lists.scrapedUsers.push(pageInfo);
 
-        // increment index
+    // drop a hot steamin load of users if we got a grip
+    if (localData.operation.lists.scrapedUsers.length >= 50) {
+        // send chunk-o-users to the database
+        userMassSet(localData.operation.lists.scrapedUsers, function () {
+            // success
+            logEvent(0, "Saved " + pageInfo.userId + " to database.");
+            goToNextUser();
+
+        }, function () {
+            // error
+            logEvent(2, "Failed to save " + pageInfo.userId + " to database. Skipping.");
+            goToNextUser();
+        });
+    }
+    else
+        goToNextUser();
+
+    // navigates to next user and saves info and stuff
+    function goToNextUser() {
+        // increment missing user index
         localData.operation.lists.missingUsersIndex++;
+        // save local data
         saveLocalData(localData);
+        // we did something
+        localData.operation.dailyTaskCounter++;
 
         // stay on the page to avoid a 429
         setTimeout(function () {
@@ -524,17 +541,8 @@ function savePotentialFollowsLoop(flagFlipFunction) {
                 location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
             else
                 location.reload();
-            return;
         }, waitOnPage);
-
-    }, function () {
-        // error
-        logEvent(2, "Failed to save " + pageInfo.userId + " to database. Skipping.");
-        // skip tag and move on
-        localData.operation.lists.missingUsersIndex++;
-        saveLocalData(localData);
-        location.reload();
-    });
+    }
 }
 
 /***********************************************
@@ -1295,6 +1303,26 @@ function userSet(user, num_posts, num_followers, num_following, profile_pic, rea
             user_real_name: real_name,
             user_bio: bio,
             user_website: website
+        },
+        success: function (result) {
+            result = JSON.parse(result);
+            if (result)
+                success();
+            else
+                error();
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
+
+function userMassSet(users, success, error) {
+    jQuery.post({
+        url: api_url + "/user/set/mass_set.php",
+        data: {
+            users: users
         },
         success: function (result) {
             result = JSON.parse(result);

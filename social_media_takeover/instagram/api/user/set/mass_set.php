@@ -30,7 +30,7 @@ if( isset( $_POST["users"] ) ){
 	// trim the space and comma
 	$sql = substr($sql, 0, -2);
 
-	$sql .= "`;";
+	$sql .= ";";
 	echo $sql;
 	// jr( sql_set_query( $sql ) );
 }
