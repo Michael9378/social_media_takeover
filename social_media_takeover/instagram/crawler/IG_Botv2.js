@@ -789,21 +789,69 @@ function getUserPosts() {
 }
 
 // replaces scrape user functions below
-function smartGetUserFollowBase(ig_id, callback) {
+function smartGetUserFollowBase(userIDCode, followersFlag, maxReturned, callback, error) {
     // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
 
-    // QUERY ID'S
     // Followers:   17851374694183129
-    // Following:   1787454532300132
-    // User Posts:  17888483320059182
-    // Tag Posts:   17875800862117404
-
-    // VARIABLES
-    // tag_name:    Needed for tag queries
+    // Following:   17874545323001329
     // first:       Number of posts to pull
     // id:          User id
 
-    var getUrl = "https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%22"+ig_id+"%22,%22first%22:"+num_followers+"}";
+    var url;
+
+    if (followersFlag)
+        url = "https://www.instagram.com/graphql/query/?query_id=17851374694183129";
+    else
+        url = "https://www.instagram.com/graphql/query/?query_id=17874545323001329";
+
+    url += "&variables=%7B%22id%22%3A%22" + userIDCode + "%22%2C%22first%22%3A" + maxReturned + "%7D";
+
+    jQuery.get({
+        url: url,
+        success: callback,
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
+
+function smartGetUserPosts(userIDCode, numberPosts, callback, error) {
+    // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
+
+    // User Posts:  17888483320059182
+    // first:       Number of posts to pull
+    // id:          User id
+
+    var url = "https://www.instagram.com/graphql/query/?query_id=17888483320059182&variables={%22id%22:%22" + userIDCode + "%22,%22first%22:" + numberPosts + "}";
+
+    jQuery.get({
+        url: url,
+        success: callback,
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
+
+function smartGetTagPage(tagName, numberPosts, callback, error) {
+    // https://www.instagram.com/graphql/query/?query_id=17875800862117404&variables={"tag_name":"motocross","first":100}
+
+    // Tag Posts:   17875800862117404
+    // tag_name:    Needed for tag queries
+    // first:       Number of posts to pull
+
+    var url = "https://www.instagram.com/graphql/query/?query_id=17875800862117404&variables={%22tag_name%22:%22" + tagName + "%22,%22first%22:" + numberPosts + "}";
+
+    jQuery.get({
+        url: url,
+        success: callback,
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
 }
 
 // scrapes followers and following and calls callback. Callback has 1 object with 2 variables for followers and following arrays
