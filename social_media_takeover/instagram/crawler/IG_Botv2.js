@@ -193,7 +193,26 @@ function checkAndRunDailyTasks() {
 
     // get potential follows info
     function afterGetTopFollowings(){
-        // TODO
+        userGetMissing(localData.operation.lists.tagInterests, 2000, function (response) {
+            // success
+            // response should hold list of users that we need to get user info for
+            var i = 0;
+            timeoutLoop(i, response.length, WAIT_ON_PAGE_TIME, function () {
+                getUserInfo(response[i], function (userObj) {
+                    // success
+                    // TODO: Add user id to user db table
+                    userSet(userObj.username);
+                }, function () {
+                    // error
+                    logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i], null);
+                });
+            }, function () {
+                // done looping
+            })
+        }, function () {
+            // error
+            logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
+        });
     }
 
     // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
@@ -491,46 +510,6 @@ function saveLocalData(data) {
     localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
 }
 
-// TODO: Save local data object to the database with username as key for stable pulling of localStorage
-function sendUserObjToDB(userObj, success, error) {
-    // get counts for db responses
-    var expectedReturns = 2;
-    var actualReturns = 0;
-    var errorsReturns = 0;
-
-    // save user to db first
-    userSet(userObj.userId, userObj.numPosts, userObj.numFollowers, userObj.numFollowing, userObj.profilePic, userObj.realName, userObj.bio, userObj.website, dbSuccess, dbError);
-
-    // save follow base
-    followBaseSet(userObj.userId, JSON.stringify(userObj.followerBase), dbSuccess, dbError);
-
-    // to be called after a success response from the db
-    function dbSuccess() {
-        actualReturns++;
-        if (actualReturns >= expectedReturns)
-            dbDone();
-    }
-    // to be called after an error response from the db
-    function dbError() {
-        actualReturns++;
-        errorsReturns++;
-        if (actualReturns >= expectedReturns)
-            dbDone();
-    }
-    // to be called when all calls return
-    function dbDone() {
-        // check for errors
-        if (errorsReturns > 0) {
-            logEvent(2, "sendUserObjToDB: Failed to store some user info into database. Error Responses: " + errorsReturns);
-            error();
-        }
-        else {
-            logEvent(0, "All user info and following for " + userObj.userId + " saved to db.");
-            success();
-        }
-    }
-}
-
 // Waits a bit and then throws timeout error and reloads page
 function setPageTimeout(waitTime, errorMessage) {
 
@@ -653,6 +632,7 @@ function botActionLikeGet(user, success, error) {
     });
 }
 
+// TODO: Add user id to user db table
 function userSet(user, num_posts, num_followers, num_following, profile_pic, real_name, bio, website, success, error) {
     jQuery.post({
         url: api_url + "/user/set/",
