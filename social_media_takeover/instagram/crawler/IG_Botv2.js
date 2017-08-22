@@ -86,83 +86,114 @@ function checkAndRunDailyTasks() {
     /* Daily Tasks */
     /***************/
 
-    // TODO: finish daily tasks out
-
     if (!localData.operation.flags.dailyCleared)
         clearDailyTotals();
 
     // scrape current user for info
-    if (!localData.operation.flags.scrapeCurUser) {
-        console.log("Running scrapeCurUser. Task counter: " + localData.operation.dailyTaskCounter);
-        // console.log("scrapeCurUser: " + localData.operation.flags.scrapeCurUser);
-        updateUserInfo(localData.user.userId, 1000, 1000, function (userObj) {
-            if (!userObj) {
-                // reload page and try again
-                saveLocalData(localData);
-                location.reload();
-            }
-            else {
-                // grab tag interests to be added in a second
-                var tagTemp = localData.user.tagInterests;
-                // update user object with new info
-                localData.user = userObj;
-                // replace missing tag interests
-                localData.user.tagInterests = tagTemp;
+    getUserInfo(localData.user.username, function (response) {
+        // success
 
-                // we saved the local users info to the db.
-                // flip task to scrape tag page and reload page
-                localData.operation.flags.scrapeCurUser = 1;
-                saveLocalData(localData);
-                location.reload();
-            }
-        });
-        // return true. Let callback handle page reload
-        return true;
-    }
+        // save the response and delete unnecessary info
+        response = response.user;
+        delete response.country_block;
+        delete response.external_url_linkshimmed;
+        delete response.has_requested_viewer;
+        delete response.profile_pic_url;
 
-    // no need to limit tag page scraping as isnt a ton of requests and will give us some missing users to scrap when waiting on finding top tag following
-    if (!localData.operation.flags.scrapeTagPage) {
-        console.log("Running scrapeTagPage. Task counter: " + localData.operation.dailyTaskCounter);
-        // call tag page loop
-        saveTagPageLoop(function () {
-            // function to take care of flipping flags to next task when this loop is done.
-            localData.operation.flags.scrapeTagPage = 1;
-            saveLocalData(localData);
-            location.reload();
-        });
+        localData.user.igObj = response;
+        // save for safety
+        saveLocalData(localData);
 
-        // Let callback handle page reload
-        return true;
+        afterGetUserInfo();
+    }, function () {
+        // error
+        // TODO
+    });
+
+    // get tag page info
+    function afterGetUserInfo() {
+        // we have the user info stored in the local data.
+        var tags = localData.user.tagInterests;
+        var responses = 0;
+        for (var i = 0; i < tags.length; i++) {
+            getTagPage(tags[i], 100, function (response) {
+                // success
+                responses++;
+                response = response.data.hashtag;
+                localData.operation.lists.tagPages.push(response);
+                // check if we got all our responses back
+                if (response >= tags.length) {
+                    // we got all our reponses back, call after get tag pages
+                    afterGetTagPages();
+                }
+            }, function () {
+                // error
+                // TODO
+            });
+        }
     }
 
     // scrape top poster follow base for tag interested users
-    // this one is going to be a shitload of requests. Set to run every 40th
-    if (!localData.operation.flags.findTopTagFollowing && localData.operation.dailyTaskCounter % 40 == 0) {
-        console.log("Running findTopTagFollowing. Task counter: " + localData.operation.dailyTaskCounter);
-    	// run loop to scrape all top posters
-        findTopTagFollowingLoop(function () {
-            // flip current task flag to completed
-            localData.operation.flags.findTopTagFollowing = 1;
-            saveLocalData(localData);
-            location.reload();
-        });
+    function afterGetTagPages() {
+        // we have all our tag pages scraped. Get follow base for top posters in each tag and label them as tag interested
+        var tags = localData.operation.lists.tagPages;
+        var responses = 0;
+        var expectedResponses = 9 * tags.length;
+        var i = 0;
 
-        // return true. Let callback handle page reload
-        return true;
+        timeoutLoop(i, tags.length, 9*WAIT_ON_PAGE_TIME, function () {
+            // set timeout loops to wait for WAIT_ON_PAGE_TIME and scrape top following and send to db as tag interested
+            var tag = tags[i];
+            var j = 0;
+
+            timeoutLoop(j, 9, WAIT_ON_PAGE_TIME, function () {
+                var topPosterId = tag.edge_hashtag_to_top_posts.edges[j].node.owner.id;
+                getUserFollowBase(topPosterId, true, 2500, function (response) {
+                    // success
+                    response = response.data.user.edge_followed_by.edges;
+                    var formattedResponse = [];
+                    for (var i = 0; i < response.length; i++) {
+                        formattedResponse.push(response[i].node.username);
+                    }
+
+                    // add the users in the database
+                    interestMassSet(formattedResponse, tag.name, null, function () {
+                        // error
+                        logEvent(2, "interestMassSet: Couldn't set a ton of users.", null);
+                    });
+
+                }, function () {
+                    // error
+                    logEvent(2, "afterGetTagPages: Failed to get top following for user: " + topPosterId, null);
+                });
+            }, null);
+        }, function () {
+            // set an interval to periodically check if we got all our responses back
+            var responseChecker = setInterval(function () {
+                // do the check in here
+                if (responses >= expectedResponses) {
+                    clearInterval(responseChecker);
+                    afterGetTopFollowings();
+                }
+            }, 500);
+
+            // clear interval and move on after 60 seconds
+            setTimeout(function () {
+                // check if we have everything
+                if (responses < expectedResponses) {
+                    // we timed out and never moved on
+                    logEvent(2, "afterGetTagPages: Timed out trying to get top post following for tags.", function () {
+                        clearInterval(responseChecker);
+                        afterGetTopFollowings();
+                    });
+                }
+            }, 60 * 1000);
+        });
     }
 
-    // go to potential users and scrape basic info with no follow base
-    // we got a shitload of these followers to scrape, so don't worry about flipping away from this task with an %mod
-    if (!localData.operation.flags.scrapePotentialFollows) {
-        console.log("Running scrape potential follows. Task counter: " + localData.operation.dailyTaskCounter);
-        savePotentialFollowsLoop(function () {
-            // flip task to like/follow users and reload page
-            localData.operation.flags.scrapePotentialFollows = 1;
-            saveLocalData(localData);
-            location.reload();
-        });
-        // Let callback handle page reload
-        return true;
+    // get potential follows info
+    function afterGetTopFollowings(){
+        // TODO
     }
 
     // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
@@ -174,621 +205,24 @@ function checkAndRunDailyTasks() {
 
 function clearDailyTotals() {
 
-    localData.operation.flags.dailyCleared = 1;
-    localData.operation.flags.scrapeCurUser = 0;
-    localData.operation.flags.scrapeTagPage = 0;
-    localData.operation.flags.findTopTagFollowing = 0;
-    localData.operation.flags.scrapePotentialFollows = 0;
-    localData.operation.flags.likeFollowUsers = 0;
+    data.operation.flags.dailyCleared = 1;
+    data.operation.flags.likeFollowUsers = 0;
+    data.operation.flags.passiveTags = 0;
 
+    data.operation.lists.followListIndex = 0;
+    data.operation.lists.unfollowListIndex = 0;
 
-    localData.operation.lists.tagPages = [];
-    localData.operation.lists.tagPagesIndex = 0;
-    localData.operation.lists.tagPageTopPosterIndex = 0;
-
-    localData.operation.lists.missingUsers = [];
-    localData.operation.lists.missingUsersIndex = 0;
-    localData.operation.lists.scrapedUsersCount = 0;
-    localData.operation.lists.scrapedUsers = [];
-
-    localData.operation.lists.followList = [];
-    localData.operation.lists.followListIndex = 0;
-    localData.operation.lists.unfollowList = [];
-    localData.operation.lists.unfollowListIndex = 0;
-
-    localData.operation.errorLog = [];
-    localData.operation.dailyLikes = 0;
-    localData.operation.dailyFollows = 0;
-    localData.operation.dailyTaskCounter = 0;
-
-    localData.user.tagInterestsIndex = 0;
-}
-
-// navigate to user page and add all their info to the database, then switch task flag to nextTask
-function updateUserInfo(user, max_followers_expansion, max_following_expansion, callback) {
-
-    // navigate to correct page
-    if (location.href.indexOf(user) == -1) {
-        saveLocalData(localData);
-        location.href = "https://www.instagram.com/" + user + "/";
-        return;
-    }
-
-    // get the page info
-    var pageInfo = getPageInfo();
-    if (pageInfo == null) {
-        saveLocalData(localData);
-        location.reload();
-        return;
-    }
-
-    // scrape user follow base
-    getUserFollowBase(pageInfo, max_followers_expansion, max_following_expansion, function (response) {
-
-        pageInfo.followerBase = response;
-        // remove the page type from the user object. We dont need it anymore.
-        delete pageInfo.type;
-        //// set local user data
-        //localData.user = pageInfo;
-        // save data to db
-        sendUserObjToDB(pageInfo, afterUserSentDB, function () {
-            // error
-            logEvent(1, "Local user info failed to saved to DB, trying again.");
-            sendUserObjToDB(pageInfo, afterUserSentDB, function () {
-                // error again.
-                logEvent(2, "Failed to save local user info to DB. No retry.");
-                // save local data
-                saveLocalData(localData);
-                callback(false);
-            });
-        });
-
-        function afterUserSentDB() {
-            logEvent(0, "Saved local user info to DB.");
-            // save local data
-            saveLocalData(localData);
-            callback(pageInfo);
-        }
-
-    });
-}
-
-// takes a tag and saves it to the database
-function saveTagPageLoop(flagFlipFunction) {
-
-	if(typeof localData.user.tagInterestsIndex != "number")
-		localData.user.tagInterestsIndex = 0;
-
-    // check if we are done looping
-    if (localData.user.tagInterestsIndex >= localData.user.tagInterests.length) {
-        // were done scraping tags.
-        localData.user.tagInterestsIndex = 0;
-        // flip task to scrape user pages and reload page
-        flagFlipFunction();
-        return;
-    }
-
-    // save the current tag to the database
-    var curTag = localData.user.tagInterests[localData.user.tagInterestsIndex];
-    // check we are on the right page
-    if (location.href.indexOf(curTag) == -1) {
-        // not at the right location. Navigate.
-        saveLocalData(localData);
-        location.href = "https://www.instagram.com/explore/tags/" + curTag + "/";
-        return;
-    }
-    var pageInfo = getPageInfo();
-
-    // push top poster username to top posters array
-    var pagePostLinks = getElementsLikeLink("/p/");
-
-    var topIndex = 0;
-    var recentIndex = 0;
-
-    var thisTagInterested = [];
-
-    // open first top post
-    pagePostLinks[0].click();
-
-    timeoutLoop(0, 9, WAIT_ON_PAGE_TIME, function () {
-        // loop function
-
-        var usernames = $("body").find("a[title]");
-
-        var topPoster = usernames[0].title;
-
-        pageInfo.topPosts[topIndex].owner = topPoster;
-        pageInfo.topPosts[topIndex].comments.users = [];
-
-        // grab the comments on this post too
-        for (var i = 1; i < usernames.length; i++) {
-            pageInfo.topPosts[topIndex].comments.users.push(usernames[i].title);
-            thisTagInterested.push(usernames[i].title);
-        }
-
-        // increment index then click
-        topIndex++;
-        // move click to end of loop for timeout-ness
-        pagePostLinks[topIndex].click();
-
-    }, function () {
-        // loop finished
-        // do it again with the recent posters
-        // first of most recents should already be open from last of previous timeout loop
-
-        timeoutLoop(9, 21, WAIT_ON_PAGE_TIME, function () {
-            // loop function
-
-            var usernames = $("body").find("a[title]");
-
-            pageInfo.recents[recentIndex].owner = usernames[0].title;
-            thisTagInterested.push(usernames[0].title);
-            pageInfo.recents[recentIndex].comments.users = [];
-
-            // grab the comments on this post too
-            for (var i = 1; i < usernames.length; i++) {
-                pageInfo.recents[recentIndex].comments.users.push(usernames[i].title);
-                thisTagInterested.push(usernames[i].title);
-            }
-
-            // increment index before clicking new post to open
-            recentIndex++;
-            // check we are still in bounds
-            if(recentIndex+9 < pagePostLinks.length){
-	            // add 9 to offset the top posts on the page
-	            pagePostLinks[recentIndex+9].click();
-            }
-
-        }, function () {
-            // loop finished
-
-            // update the localdata object
-            localData.operation.dailyTaskCounter++;
-            localData.operation.lists.tagPagesIndex = localData.user.tagInterestsIndex;
-            localData.operation.lists.tagPages[localData.operation.lists.tagPagesIndex] = pageInfo;
-            // save local data for safe keeping
-            saveLocalData(localData);
-
-            interestMassSet(thisTagInterested, curTag, function () {
-                // success
-                // add tag to database
-                tagSet(pageInfo.name, pageInfo.numPosts, function () {
-                    // success
-                    logEvent(0, "Saved " + pageInfo.name + " to database.");
-                    localData.operation.lists.tagPages.push(pageInfo);
-                    // increment index and reload page. Check for out of bounds index is at beginning of function
-                    localData.user.tagInterestsIndex++;
-                    saveLocalData(localData);
-                    location.reload();
-
-                }, function () {
-                    // error
-                    logEvent(2, "Failed to save " + pageInfo.name + " to database. Skipping.");
-                    // skip tag and move on
-                    localData.user.tagInterestsIndex++;
-                    saveLocalData(localData);
-                    location.reload();
-                });
-            },
-            function () {
-                // error
-                logEvent(2, "Failed to save tag interested users for: " + curTag + ". Retrying.");
-                saveLocalData(localData);
-                location.reload();
-            });
-        });
-    });
-}
-
-// loops through the top posters for each tag and scrapes their follow base for tag interested users
-function findTopTagFollowingLoop(flagFlipFunction){
-
-	var tagIndex = localData.operation.lists.tagPagesIndex;
-	var topPosterIndex = localData.operation.lists.tagPageTopPosterIndex;
-
-	// check if we are done looping
-	if(tagIndex >= localData.operation.lists.tagPages.length){
-        // were done scraping follow bases.
-        localData.user.tagPagesIndex = 0;
-        // flip task to scrape user pages and reload page
-        flagFlipFunction();
-        return;
-	}
-	
-	var curTagPage = localData.operation.lists.tagPages[tagIndex];
-
-	// check if we have scraped all top users for current tag
-	if(topPosterIndex >= curTagPage.topPosts.length){
-		// were done with this tag.
-		localData.operation.lists.tagPageTopPosterIndex = 0;
-		localData.operation.lists.tagPagesIndex++;
-		saveLocalData(localData);
-		location.reload();
-		return;
-	}
-
-	var curUser = curTagPage.topPosts[topPosterIndex].owner;
-
-	updateUserInfo(curUser, 1000, 9, function(userObj){
-		// set tag interested in database
-		interestMassSet(userObj.followerBase.followers, curTagPage.name, function(){
-		    // success
-		    localData.operation.dailyTaskCounter++;
-			localData.operation.lists.tagPageTopPosterIndex++;
-			saveLocalData(localData);
-			location.reload();
-		},
-		function(){
-			// error
-			logEvent(2, "findTopTagFollowingLoop: Couldn't save followers as tag interested.");
-			saveLocalData(localData);
-			location.reload();
-		});
-	});
-
-}
-
-// takes a potential follower and saves them to the database
-function savePotentialFollowsLoop(flagFlipFunction) {
-
-    // TODO: Update to pull potential follows for which to scrape from db and if not enough users have been scraped yet, then update the database and try again
-
-    // check if we have scraped enough users
-    if (localData.operation.lists.scrapedUsersCount >= MAX_USER_SCRAPE) {
-        // save the scraped users array to the database, clear the scrape and missing user arrays, and pop out of the loop
-        // TODO: Ajax call here and save local data
-        flagFlipFunction();
-        return;
-
-    }
-
-    // make sure we have users to scrape
-    if (localData.operation.lists.missingUsersIndex >= localData.operation.lists.missingUsers.length) {
-        // Missing users array is all done, query for more users
-        userGetMissing(localData.user.tagInterests, 250, function (response) {
-            // success
-            localData.operation.lists.missingUsers = response;
-            localData.operation.lists.missingUsersIndex = 0;
-            // reload page to start loop back at beginning.
-            // Not necessary but keeps code clean.
-            saveLocalData(localData);
-            location.reload();
-        }, function (error) {
-            // error
-            logEvent(2, "Daily Tasks: Couldn't get list of missing users.");
-            saveLocalData(localData);
-            location.reload();
-            return true;
-        });
-        return;
-    }
-
-    // save the current missing user to the database
-    var curMissUser = localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id;
-    // check we are on the right page
-    if (location.href.indexOf(curMissUser) == -1) {
-
-        // not at the right location. Navigate.
-        saveLocalData(localData);
-        location.href = "https://www.instagram.com/" + curMissUser + "/";
-        return;
-    }
-
-    // check we haven't 404'ed
-    if (getElementsLikeHtml("p", "The link you followed may be broken, or the page may have been removed.").length > 0) {
-        // we 404'ed
-        logEvent(2, "The user's page no longer exists: " + curMissUser);
-        // go to next user
-        localData.operation.lists.missingUsersIndex++;
-        saveLocalData(localData);
-        if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
-            location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
-        return;
-    }
-
-    var pageInfo = getPageInfo();
-    if (pageInfo == null) {
-        saveLocalData(localData);
-        location.reload();
-        return;
-    }
-
-    // get rid of extra stuff we wont need.
-    delete pageInfo.type;
-    delete pageInfo.posts;
-
-    // push this user to the scraped users array
-    localData.operation.lists.scrapedUsers.push(pageInfo);
-
-    // drop a hot steamin load of users if we got a grip
-    if (localData.operation.lists.scrapedUsers.length >= 50) {
-        // send chunk-o-users to the database
-        userMassSet(localData.operation.lists.scrapedUsers, function () {
-            // success
-            logEvent(0, "Saved " + pageInfo.userId + " to database.");
-            goToNextUser();
-
-        }, function () {
-            // error
-            logEvent(2, "Failed to save " + pageInfo.userId + " to database. Skipping.");
-            goToNextUser();
-        });
-    }
-    else
-        goToNextUser();
-
-    // navigates to next user and saves info and stuff
-    function goToNextUser() {
-        // increment missing user index
-        localData.operation.lists.missingUsersIndex++;
-        // we did something
-        localData.operation.dailyTaskCounter++;
-        // save local data
-        saveLocalData(localData);
-
-        // stay on the page to avoid a 429
-        setTimeout(function () {
-            // if we still have missing users, go to the next user
-            // otherwise reload the page and figure out life
-            if (localData.operation.lists.missingUsersIndex < localData.operation.lists.missingUsers.length)
-                location.href = "https://www.instagram.com/" + localData.operation.lists.missingUsers[localData.operation.lists.missingUsersIndex].user_id + "/";
-            else
-                location.reload();
-        }, WAIT_ON_PAGE_TIME);
-    }
+    data.operation.counters.dailyLikes = 0;
+    data.operation.counters.dailyFollows = 0;
+    data.operation.counters.dailyTimer = 0;
+    data.operation.counters.dailyTaskCounter = 0;
 }
 
 /***********************************************
 ************* Scraping Functions ***************
 ************************************************/
 
-// returns object containing all relevant info of current page.
-function getPageInfo() {
-
-    var pageInfo;
-    var url = location.href;
-    var pageType = 0; // 1 for user, 2 for post, 3 for tag
-
-    // if we have 4 slashes, we arent on the homepage
-    if ((url.match(new RegExp("/", "g")) || []).length == 4)
-        pageType = 1;
-    // if we have a /p/ then we are on a post page
-    if (url.indexOf("instagram.com/p/") != -1)
-        pageType = 2;
-    // if we are on tags page, should see /explore/tags/
-    if (url.indexOf("instagram.com/explore/tags") != -1)
-        pageType = 3;
-
-    // switch to get data and format into an object to pass back
-    switch (pageType) {
-        case 1:
-            pageInfo = getUserPageInfo();
-            break;
-        case 2:
-            pageInfo = getPostPageInfo();
-            break;
-        case 3:
-            pageInfo = getTagPageInfo();
-            break;
-        default:
-            logEvent(2, "getPageInfo: Could not find pageType. URL: " + url);
-            pageInfo = null;
-    }
-
-
-    // make sure we got page info
-    if (pageInfo == null)
-        return null;
-
-    // we have some info. Validate it before returning it.
-    if (validatePageInfo(pageInfo, pageType))
-        return pageInfo;
-    else {
-        logEvent(1, "getPageInfo: pageInfo failed to validate.");
-        return null;
-    }
-
-}
-
-// scrapes user page for all relevant info and returns in formatted object
-function getUserPageInfo(needPosts) {
-
-    // use this shit instead, fuck
-    // unsafeWindow._sharedData.entry_data.ProfilePage[0].user
-
-
-    if (typeof unsafeWindow._sharedData.entry_data.ProfilePage == "undefined" && !needPosts) {
-        // alternative to using instagram shared data
-
-        // username is in url
-        var url = location.href;
-        var splits = url.split("/");
-        var username = splits[splits.length - 2];
-
-        // get the ul that holds the number of posts, followers, and following
-        var infoList = $(getElementsLikeLink("/following/"));
-        var userObj = {};
-        while (infoList.prop('nodeName') != "UL")
-            infoList = infoList.parent();
-
-        userObj.type = 1;
-        userObj.userId = username;
-        userObj.numPosts = getUserNumPosts(infoList);
-        userObj.posts = getUserPosts();
-        userObj.numFollowers = getUserNumFollowers(infoList);
-        userObj.numFollowing = getUserNumFollowing(infoList);
-        userObj.profilePic = $("[alt='Change profile photo']").attr("src");
-        userObj.realName = $("h2").html();
-        userObj.bio = $("h2").parent().find("span span").html();
-        userObj.website = $("h2").parent().find("a").html();
-    }
-    // we need posts. If no shared data, return null.
-    else if (typeof unsafeWindow._sharedData.entry_data.ProfilePage == "undefined") {
-        saveLocalData(localData);
-        return null;
-    }
-    else {
-        var userObj = {};
-        var shortCut = unsafeWindow._sharedData.entry_data.ProfilePage[0].user;
-
-        // pageTypes
-        // 1 = user page
-        // 2 = post page
-        // 3 = tag page
-        userObj.type = 1;
-        userObj.ig_id = shortCut.id;
-        userObj.userId = shortCut.username;
-        userObj.numPosts = shortCut.media.count;
-        userObj.posts = shortCut.media.nodes;
-        userObj.numFollowers = shortCut.followed_by.count;
-        userObj.numFollowing = shortCut.follows.count;
-        userObj.profilePic = shortCut.profile_pic_url_hd;
-        userObj.realName = shortCut.full_name;
-        userObj.bio = shortCut.biography;
-        userObj.website = shortCut.external_url;
-    }
-
-    return userObj;
-}
-
-// scrapes post page for all relevant info and returns in formatted object
-function getPostPageInfo() {
-
-    if (typeof unsafeWindow._sharedData.entry_data.PostPage == "undefined") {
-        logEvent(1, "getPostPageInfo: Instagram shared PostPage data wasn't loaded.");
-        return null;
-    }
-    else {
-        var postObj = {};
-        var shortCut = unsafeWindow._sharedData.entry_data.PostPage[0].graphql.shortcode_media;
-
-        // pageTypes
-        // 1 = user page
-        // 2 = post page
-        // 3 = tag page
-        postObj.type = 2;
-        postObj.postId = shortCut.shortcode;
-        postObj.userId = shortCut.owner.username;
-        postObj.time = shortCut.taken_at_timestamp;
-        postObj.description = shortCut.edge_media_to_caption.edges[0].node.text;
-        postObj.isVideo = shortCut.is_video;
-        postObj.numLikes = shortCut.edge_media_preview_like.count;
-        postObj.likes = shortCut.edge_media_preview_like.edges
-        postObj.comments = shortCut.edge_media_to_comment.edges;
-        postObj.tagged_users = shortCut.edge_media_to_tagged_user.edges;
-        postObj.tags = parseForTags(postObj.description);
-
-        return postObj;
-    }
-}
-
-// scrapes tag page for all relevant info and returns in formatted object
-function getTagPageInfo() {
-
-    // TODO: Add similar tag relationship and label tags of this post as a hit to the similars.
-    // Update auto follows to order by how far their follow base differs from mean
-
-    if (typeof unsafeWindow._sharedData.entry_data.TagPage == "undefined") {
-        logEvent(1, "getTagPageInfo: Instagram shared TagPage data wasn't loaded.");
-        return null;
-    }
-    else {
-        var tagObj = {};
-        var shortCut = unsafeWindow._sharedData.entry_data.TagPage[0].tag;
-
-        // pageTypes
-        // 1 = user page
-        // 2 = post page
-        // 3 = tag page
-        tagObj.type = 3;
-        tagObj.name = shortCut.name;
-        tagObj.numPosts = shortCut.media.count;
-        tagObj.recents = shortCut.media.nodes;
-        tagObj.topPosts = shortCut.top_posts.nodes;
-
-        return tagObj;
-    }
-}
-
-function parseForTags(string) {
-    // holds return arr
-    var tags = [];
-    // split on #
-    var arr = string.split("#");
-    
-    // loop through all but first element and split all pieces on space and take first element
-    for(var i = 1; i < arr.length; i++){
-        var part = arr[i];
-        // check that it isnt empty string
-        if (part.length != 0) {
-            // tag ends at space
-            var tag = part.split(" ")[0];
-            // make sure only alphanumerics
-            tag = tag.replace(/[^a-z0-9]/gi,'');
-            tags.push(tag);
-        }
-    }
-    return tags;
-}
-
-// takes in $("ul") that contains the num posts, num followers, and num following and returns number of posts
-function getUserNumPosts(infoList) {
-    // get number of posts
-    var posts = $(infoList.find("li")[0]);
-    while (posts.children()[0] != undefined)
-        posts = $(posts.children()[0]);
-    // get string of num posts
-    posts = posts.html();
-    // Strip commas and parse to int.
-    posts = parseInt(posts.replace(/\D/g, ''));
-    return posts;
-}
-
-// takes in $("ul") that contains the num posts, num followers, and num following and returns number of followers
-function getUserNumFollowers(infoList) {
-    // follows is second element in list.
-    var followers = $(infoList.find("li")[1]);
-    while (followers.children()[0] != undefined)
-        followers = $(followers.children()[0]);
-    // get string of number of follows
-    followers = followers.attr("title");
-    // Strip commas and parse to int.
-    followers = parseInt(followers.replace(/\D/g, ''));
-    return followers;
-}
-
-// takes in $("ul") that contains the num posts, num followers, and num following and returns number of following
-function getUserNumFollowing(infoList) {
-    // following is third element in list.
-    var following = $(infoList.find("li")[2]);
-    while (following.children()[0] != undefined)
-        following = $(following.children()[0]);
-    // get string of num posts
-    following = following.html();
-    following = parseInt(following.replace(/\D/g, ''));
-    return following;
-}
-
-// when on the user page, will get the first posts that are displayed, as well as their info and format them close to the instagram standard as possible
-function getUserPosts() {
-    // get all the links that contain the image and info
-    var postLinks = getElementsLikeLink("?taken-by");
-    var posts = [];
-
-    for (var i = 0; i < postLinks.length; i++) {
-        // all you can grab from this method is code, caption, and thumbnail.
-        // youll need to use window shared data to grab more complex post info
-        var post_node = {};
-        var code = postLinks[0].href.split("/");
-        post_node.code = code[code.length - 2];
-        post_node.caption = $(postLinks[0]).find("img").attr("alt");
-        post_node.thumbnail_src = $(postLinks[0]).find("img").attr("src");
-        posts.push(post_node);
-    }
-    return posts;
-}
-
-function smartGetUserInfo(username, callback, error) {
+function getUserInfo(username, callback, error) {
 
     var url = "https://www.instagram.com/" + username + "/?__a=1";
 
@@ -802,7 +236,7 @@ function smartGetUserInfo(username, callback, error) {
     });
 }
 
-function smartGetUserPosts(userIDCode, numberPosts, callback, error) {
+function getUserPosts(userIDCode, numberPosts, callback, error) {
     // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
 
     // User Posts:  17888483320059182
@@ -820,8 +254,8 @@ function smartGetUserPosts(userIDCode, numberPosts, callback, error) {
         }
     });
 }
-// replaces scrape user functions below
-function smartGetUserFollowBase(userIDCode, followersFlag, maxReturned, callback, error) {
+
+function getUserFollowBase(userIDCode, followersFlag, maxReturned, callback, error) {
     // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
 
     // Followers:   17851374694183129
@@ -848,7 +282,7 @@ function smartGetUserFollowBase(userIDCode, followersFlag, maxReturned, callback
     });
 }
 
-function smartGetTagPage(tagName, numberPosts, callback, error) {
+function getTagPage(tagName, numberPosts, callback, error) {
     // https://www.instagram.com/graphql/query/?query_id=17875800862117404&variables={"tag_name":"motocross","first":100}
 
     // Tag Posts:   17875800862117404
@@ -867,160 +301,25 @@ function smartGetTagPage(tagName, numberPosts, callback, error) {
     });
 }
 
-// scrapes followers and following and calls callback. Callback has 1 object with 2 variables for followers and following arrays
-function getUserFollowBase(userObj, max_followers_expansion, max_following_expansion, callback) {
-    // get the followers userbase
-    getUserFollowBaseHelper(userObj, 0, max_followers_expansion, {}, function (results) {
-        // close opened menu
-        var closeBtn = getElementsByHtml("Button", "Close")[0];
-        if (typeof closeBtn != "undefined")
-            closeBtn.click();
-        // make sure the close button has closed the opened div
-        elementNotExists(getElementsByHtml("Button", "Close")[0], function () {
-            // get the following base
-            getUserFollowBaseHelper(userObj, 1, max_following_expansion, results, function (results_2) {
-                // when its done, close the div again
-                var closeBtn = getElementsByHtml("Button", "Close")[0];
-                if (typeof closeBtn != "undefined")
-                    closeBtn.click();
-                // update userObj
-                userObj.followerBase = results_2;
-                // call callback with the results to double up
-                callback(results_2);
-            });
-        }, 1000);
-    });
-}
+function parseForTags(string) {
+    // holds return arr
+    var tags = [];
+    // split on #
+    var arr = string.split("#");
 
-function getUserFollowBaseHelper(userObj, followFlag, max_list_expansion, results, callback) {
-
-    if (followFlag == 0)
-        getElementsLikeLink("/followers/")[0].click();
-    else
-        getElementsLikeLink("/following/")[0].click();
-
-    var container;
-    var follows = [];
-
-    // wait for container to be opened with followers
-    elementExists("ul._539vh._4j13h", function (timedOut) {
-
-        // make sure we didnt time out.
-        if (timedOut)
-            logEvent(1, "getUserFollowBaseHelper: elementExists: Timed out.");
-
-        // we now have followers container
-        if (followFlag == 0)
-            container = $(getElementsByHtml("div", "Followers")[0]).parent().find("ul").parent();
-        else
-            container = $(getElementsByHtml("div", "Following")[0]).parent().find("ul").parent();
-
-        var expectedSize = max_list_expansion;
-        if (followFlag == 0)
-            expectedSize = userObj.numFollowers;
-        else
-            expectedSize = userObj.numFollowing;
-
-        if (expectedSize > max_list_expansion)
-            expectedSize = max_list_expansion;
-
-        scrollBottom(container, expectedSize, 0, 0, 0, function () {
-
-            // we reached the bottom of the list
-            var follower_elements = container.find("li a[title]");
-            for( var i = 0; i < follower_elements.length; i++ )
-                follows.push($(follower_elements[i]).attr("title"));
-
-            if (followFlag == 0)
-                results.followers = follows;
-            else
-                results.following = follows;
-
-            callback(results);
-
-        });
-    });
-}
-
-// takes a jQuery element in and scrolls to the bottom of the list
-function scrollBottom(container, expectedSize, old_li_count, li_matches, index, callback) {
-
-    if (typeof index != "number")
-        index = 0;
-    if (typeof old_li_count != "number")
-        old_li_count = 0;
-    if (typeof li_matches != "number")
-        li_matches = 0;
-
-    // count new li elements and see if we made progress
-    var li_count = container.find("li").length;
-    // if we match, add to matches. Otherwise, reset match counter.
-    if( li_count == old_li_count ){
-        li_matches++;
+    // loop through all but first element and split all pieces on space and take first element
+    for (var i = 1; i < arr.length; i++) {
+        var part = arr[i];
+        // check that it isnt empty string
+        if (part.length != 0) {
+            // tag ends at space
+            var tag = part.split(" ")[0];
+            // make sure only alphanumerics
+            tag = tag.replace(/[^a-z0-9]/gi, '');
+            tags.push(tag);
+        }
     }
-    else
-        li_matches = 0;
-
-    // stop if we have looped for more than 100 seconds
-    // or hit at least expected size
-    if (index > 300 || li_count > expectedSize ) {
-        callback();
-        return;
-    }
-    // stop if we have hit 5 matches in a row and are sure we have collected at least 95% of the list in question
-    // otherwise reset the counter and try again
-    if(  ((li_matches >= 5)  && (li_count > 0.95*expectedSize)) ){
-        callback();
-        return;
-    }
-    else {
-        container.scrollTop(container.height() + 99999);
-        index++;
-        // slowDownFactor of 1 results in a 429 from instagram.
-        var slowDownFactor = 3;
-        setTimeout(function () { scrollBottom(container, expectedSize, li_count, li_matches, index, callback); }, slowDownFactor*200);
-        return;
-    }
-}
-
-// validates data object pulled from instagram data. Returns true or false.
-function validatePageInfo(pageInfo, pageType) {
-
-    // pageTypes
-    // 1 = user page
-    // 2 = post page
-    // 3 = tag page
-
-    if (pageInfo.type != pageType) {
-        logEvent(1, "validatePageInfo: page type of shared data doesn't match expected value.");
-        return false;
-    }
-
-    var url = location.href;
-
-    // validate userpage by matching username to name in url
-    if (pageType == 1) {
-        var userId = url.split("/");
-        userId = userId[userId.length - 2];
-
-        return (pageInfo.userId == userId);
-    }
-
-    // validate post by matching shortcode to id in url
-    if (pageType == 2) {
-        var postId = url.split("/");
-        postId = postId[postId.length - 2];
-
-        return (pageInfo.id == postId);
-    }
-
-    // validate tag by matching tagname to name in url
-    if (pageType == 3) {
-        var tagName = url.split("/");
-        tagName = tagName[tagName.length - 2];
-
-        return (pageInfo.name == tagName);
-    }
+    return tags;
 }
 
 /***********************************************
@@ -1105,8 +404,8 @@ function getElementsLikeHtml(selector, match_string) {
 // index is starting index, stop is stop index, time is the timeout before next loop, body is actual code to execute, done is code to execute after the loop completes
 function timeoutLoop(index, stop, time, body, done) {
     if (index < stop) {
+        body();
         setTimeout(function () {
-        	body();
             timeoutLoop(++index, stop, time, body, done);
         }, time);
     }
@@ -1146,47 +445,37 @@ function getLocalData() {
     if (data == null) {
 
         data = {};
-        data.user = {};
-        data.operation = {};
-        data.operation.flags = {};
-        data.operation.lists = {};
 
         // TODO: Make this interactive for a new user to update
+        data.user = {};
+        data.user.igObj = {};
         data.user.username = "dirtkingdom";
         data.user.tagInterests = ["motocross", "braap", "dirtbike"];
-        data.user.tagInterestsIndex = 0;
 
+        data.operation = {};
+        data.operation.flags = {};
         data.operation.flags.dailyCleared = 1;
-        data.operation.flags.scrapeCurUser = 0;
-        data.operation.flags.scrapeTagPage = 0;
-        data.operation.flags.findTopTagFollowing = 0;
-        data.operation.flags.scrapePotentialFollows = 0;
         data.operation.flags.likeFollowUsers = 0;
+        data.operation.flags.passiveTags = 0;
 
+        data.operation.lists = {};
+        data.operation.lists.errorLog = [];
         data.operation.lists.tagPages = [];
-        data.operation.lists.tagPagesIndex = 0;
-    	data.operation.lists.tagPageTopPosterIndex = 0;
-
-        data.operation.lists.missingUsers = [];
-        data.operation.lists.missingUsersIndex = 0;
-        data.operation.lists.scrapedUsersCount = 0;
-        data.operation.lists.scrapedUsers = [];
-
+        data.operation.lists.scrapeUsers = [];
         data.operation.lists.followList = [];
         data.operation.lists.followListIndex = 0;
-
         data.operation.lists.unfollowList = [];
         data.operation.lists.unfollowListIndex = 0;
 
-        data.operation.errorLog = [];
-        data.operation.dailyLikes = 0;
-        data.operation.dailyFollows = 0;
-        data.operation.globalLikes = 0;
-        data.operation.globalFollows = 0;
-        data.operation.dailyTimer = 0;
-        data.operation.dailyTaskCounter = 0;
-        data.operation.pageStuckUrl = "";
-        data.operation.pageStuckCounter = 0;
+        data.operation.counters = {};
+        data.operation.counters.dailyLikes = 0;
+        data.operation.counters.dailyFollows = 0;
+        data.operation.counters.globalLikes = 0;
+        data.operation.counters.globalFollows = 0;
+        data.operation.counters.dailyTimer = 0;
+        data.operation.counters.dailyTaskCounter = 0;
+        data.operation.counters.pageStuckUrl = "";
+        data.operation.counters.pageStuckCounter = 0;
 
         localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
         // logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
