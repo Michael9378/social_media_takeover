@@ -788,23 +788,9 @@ function getUserPosts() {
     return posts;
 }
 
-// replaces scrape user functions below
-function smartGetUserFollowBase(userIDCode, followersFlag, maxReturned, callback, error) {
-    // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
+function smartGetUserInfo(username, callback, error) {
 
-    // Followers:   17851374694183129
-    // Following:   17874545323001329
-    // first:       Number of posts to pull
-    // id:          User id
-
-    var url;
-
-    if (followersFlag)
-        url = "https://www.instagram.com/graphql/query/?query_id=17851374694183129";
-    else
-        url = "https://www.instagram.com/graphql/query/?query_id=17874545323001329";
-
-    url += "&variables=%7B%22id%22%3A%22" + userIDCode + "%22%2C%22first%22%3A" + maxReturned + "%7D";
+    var url = "https://www.instagram.com/" + username + "/?__a=1";
 
     jQuery.get({
         url: url,
@@ -824,6 +810,33 @@ function smartGetUserPosts(userIDCode, numberPosts, callback, error) {
     // id:          User id
 
     var url = "https://www.instagram.com/graphql/query/?query_id=17888483320059182&variables={%22id%22:%22" + userIDCode + "%22,%22first%22:" + numberPosts + "}";
+
+    jQuery.get({
+        url: url,
+        success: callback,
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
+// replaces scrape user functions below
+function smartGetUserFollowBase(userIDCode, followersFlag, maxReturned, callback, error) {
+    // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
+
+    // Followers:   17851374694183129
+    // Following:   17874545323001329
+    // first:       Number of posts to pull
+    // id:          User id
+
+    var url;
+
+    if (followersFlag)
+        url = "https://www.instagram.com/graphql/query/?query_id=17851374694183129";
+    else
+        url = "https://www.instagram.com/graphql/query/?query_id=17874545323001329";
+
+    url += "&variables=%7B%22id%22%3A%22" + userIDCode + "%22%2C%22first%22%3A" + maxReturned + "%7D";
 
     jQuery.get({
         url: url,
