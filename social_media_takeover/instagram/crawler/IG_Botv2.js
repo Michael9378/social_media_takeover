@@ -1139,7 +1139,7 @@ function getLocalData() {
         data.operation.lists = {};
 
         // TODO: Make this interactive for a new user to update
-        data.user.userId = "dirtkingdom";
+        data.user.username = "dirtkingdom";
         data.user.tagInterests = ["motocross", "braap", "dirtbike"];
         data.user.tagInterestsIndex = 0;
 
