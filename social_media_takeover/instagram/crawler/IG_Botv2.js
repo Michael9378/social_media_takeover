@@ -119,6 +119,7 @@ function saveCurUserInfo() {
         delete response.profile_pic_url;
 
         localData.user.igObj = response;
+        console.log("Got current user info.");
         // save locally for safety
         saveLocalData(localData);
         // send to database
@@ -144,6 +145,7 @@ function saveTagPages() {
             // success
             responses++;
             response = response.data.hashtag;
+            console.log("Got tag page: " + response.name);
             localData.operation.lists.tagPages.push(response);
             // check if we got all our responses back
             if (responses >= tags.length) {
@@ -189,6 +191,7 @@ function saveTopFollowings() {
             getUserFollowBase(topPoster.id, true, MAX_USER_SCRAPE, function (response) {
                 // success
                 responses++;
+                console.log("Got following " + responses + "/" + expectedResponses +" : " + topPoster.username);
                 response = response.data.user.edge_followed_by.edges;
                 var formattedResponse = [];
                 for (var k = 0; k < response.length; k++) {
@@ -248,6 +251,7 @@ function savePotentialFollows() {
             getUserInfo(response[i].user_id, function (userObj) {
                 // success
                 // TODO: Add user id to user db table
+                console.log("Got user info " + i + "/" + response.length + " : " + userObj.user.username);
                 usersToSet.push(userObj.user);
             }, function () {
                 // error
