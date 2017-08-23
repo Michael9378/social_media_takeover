@@ -10,7 +10,7 @@ if( isset( $_POST["users"] ) ){
 
 	$date = date("Y/m/d");
 
-	$sql = "INSERT INTO `ig_users` ";
+	$sql = "INSERT INTO `ig_users` (user_id, user_idNum, user_num_posts, user_num_followers, user_num_following, user_profile_pic, user_real_name, user_bio, user_website, freshness)";
 	$sql .= "VALUES";
 
 	foreach($users as $user){
@@ -30,8 +30,8 @@ if( isset( $_POST["users"] ) ){
 	}
 	// trim the space and comma
 	$sql = substr($sql, 0, -2);
-
-	$sql .= ";";
+	// update on duplicate
+	$sql .= " ON DUPLICATE KEY UPDATE user_num_posts = VALUES(user_num_posts), user_num_followers = VALUES(user_num_followers), user_num_following = VALUES(user_num_following), user_profile_pic = VALUES(user_profile_pic), user_real_name = VALUES(user_real_name), user_bio = VALUES(user_bio), user_website = VALUES(user_website), freshness = VALUES(freshness);";
 	jr( sql_set_query( $sql ) );
 }
 else

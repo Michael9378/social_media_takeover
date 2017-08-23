@@ -492,12 +492,12 @@ function logEvent(msgType, msg, callback) {
             break;
         case 1:
             console.log(timeStamp + ": Warning \"" + msg + "\"");
-            localData.operation.errorLog.push(timeStamp + ": Warning \"" + msg + "\"");
+            localData.operation.lists.errorLog.push(timeStamp + ": Warning \"" + msg + "\"");
             setLog(timeStamp.getTime(), msgType, msg, callback);
             break;
         case 2:
             console.log(timeStamp + ": Error \"" + msg + "\"");
-            localData.operation.errorLog.push(timeStamp + ": Error \"" + msg + "\"");
+            localData.operation.lists.errorLog.push(timeStamp + ": Error \"" + msg + "\"");
             setLog(timeStamp.getTime(), msgType, msg, callback);
             break;
         default:
