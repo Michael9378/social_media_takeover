@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS ig_log;
 CREATE TABLE ig_users
 (
 	user_id VARCHAR(35),
+	user_idNum INT,
 	user_num_posts INT,
 	user_num_followers INT,
 	user_num_following INT,

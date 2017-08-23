@@ -126,9 +126,12 @@ function saveCurUserInfo() {
         delete response.profile_pic_url;
 
         localData.user.igObj = response;
-        // save for safety
+        // save locally for safety
         saveLocalData(localData);
-        // TODO: send update local data obj in db
+        // send to database
+        userMassSet([response], null, function () {
+            logEvent(2, "saveCurUserInfo: couldnt save cur user to database.", null);
+        });
 
         // call to get tag page info
         saveTagPages();
@@ -189,8 +192,8 @@ function saveTopFollowings() {
         var j = 0;
 
         timeoutLoop(0, 9, WAIT_ON_PAGE_TIME, function () {
-            var topPosterId = tag.edge_hashtag_to_top_posts.edges[j].node.owner.id;
-            getUserFollowBase(topPosterId, true, MAX_USER_SCRAPE, function (response) {
+            var topPoster = tag.edge_hashtag_to_top_posts.edges[j].node.owner;
+            getUserFollowBase(topPoster.id, true, MAX_USER_SCRAPE, function (response) {
                 // success
                 response = response.data.user.edge_followed_by.edges;
                 var formattedResponse = [];
@@ -206,7 +209,7 @@ function saveTopFollowings() {
 
             }, function () {
                 // error
-                logEvent(2, "saveTopFollowings: Failed to get top following for user: " + tag.edge_hashtag_to_top_posts.edges[j].node.owner.username, null);
+                logEvent(2, "saveTopFollowings: Failed to get top following for user: " + topPoster.username, null);
             });
             j++;
         }, null);
@@ -244,17 +247,25 @@ function savePotentialFollows() {
         // success
         // response should hold list of users that we need to get user info for
         var i = 0;
+        var usersToSet = []
         timeoutLoop(i, response.length, WAIT_ON_PAGE_TIME, function () {
             getUserInfo(response[i], function (userObj) {
                 // success
                 // TODO: Add user id to user db table
-                userSet(userObj.username);
+                usersToSet.push(userObj.user);
             }, function () {
                 // error
                 logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i], null);
             });
             i++;
-        }, finishedRunningDailyTasks);
+        }, function () {
+            // finished looping. Save users to database
+            userMassSet(usersToSet, finishedRunningDailyTasks, function () {
+                // failed to set the chunk. Log event
+                logEvent(2, "savePotentialFollows: failed to send a chunk to db.", null);
+                finishedRunningDailyTasks();
+            });
+        });
     }, function () {
         // error
         logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
@@ -669,11 +680,12 @@ function botActionLikeGet(user, success, error) {
 }
 
 // TODO: Add user id to user db table
-function userSet(user, num_posts, num_followers, num_following, profile_pic, real_name, bio, website, success, error) {
+function userSet(username, userid, num_posts, num_followers, num_following, profile_pic, real_name, bio, website, success, error) {
     jQuery.post({
         url: api_url + "/user/set/",
         data: {
-            user_id: user,
+            user_name: username,
+            user_id: userid,
             user_num_posts: num_posts,
             user_num_followers: num_followers,
             user_num_following: num_following,

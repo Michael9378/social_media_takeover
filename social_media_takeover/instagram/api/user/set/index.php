@@ -3,9 +3,10 @@
 
 require getcwd().'/../../lib/h.php';
 
-if( isset( $_POST["user_id"] ) ){
+if( isset( $_POST["user_name"] ) ){
 
-	$user_id = $_POST["user_id"];
+	$user_id = $_POST["user_name"];
+	$user_idNum = $_POST["user_id"];
 	$user_num_posts = $_POST["user_num_posts"];
 	$user_num_followers = $_POST["user_num_followers"];
 	$user_num_following = $_POST["user_num_following"];
@@ -16,7 +17,7 @@ if( isset( $_POST["user_id"] ) ){
 	$date = date("Y/m/d");
 
 	$sql = "INSERT INTO `ig_users` ";
-	$sql .= "VALUES('".$user_id."', ".$user_num_posts.", ".$user_num_followers.", ".$user_num_following.", '".$user_profile_pic."', '".$user_real_name."', '".$user_bio."', '".$user_website."', '".$date."') ";
+	$sql .= "VALUES('".$user_id."', '".$user_idNum."', ".$user_num_posts.", ".$user_num_followers.", ".$user_num_following.", '".$user_profile_pic."', '".$user_real_name."', '".$user_bio."', '".$user_website."', '".$date."') ";
 
 	// only update the passed values
 	$sql .= "ON DUPLICATE KEY UPDATE ";
@@ -40,6 +41,6 @@ if( isset( $_POST["user_id"] ) ){
 	jr( sql_set_query( $sql ) );
 }
 else
-	jr("Missing user_id param.");
+	jr("Missing user_name param.");
 
 ?>
