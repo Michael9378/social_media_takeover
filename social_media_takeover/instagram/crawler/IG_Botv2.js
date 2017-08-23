@@ -195,6 +195,7 @@ function saveTopFollowings() {
             var topPoster = tag.edge_hashtag_to_top_posts.edges[j].node.owner;
             getUserFollowBase(topPoster.id, true, MAX_USER_SCRAPE, function (response) {
                 // success
+                responses++;
                 response = response.data.user.edge_followed_by.edges;
                 var formattedResponse = [];
                 for (var k = 0; k < response.length; k++) {
@@ -209,6 +210,7 @@ function saveTopFollowings() {
 
             }, function () {
                 // error
+                responses++;
                 logEvent(2, "saveTopFollowings: Failed to get top following for user: " + topPoster.username, null);
             });
             j++;
@@ -249,7 +251,7 @@ function savePotentialFollows() {
         var i = 0;
         var usersToSet = []
         timeoutLoop(i, response.length, WAIT_ON_PAGE_TIME, function () {
-            getUserInfo(response[i], function (userObj) {
+            getUserInfo(response[i].user_id, function (userObj) {
                 // success
                 // TODO: Add user id to user db table
                 usersToSet.push(userObj.user);
