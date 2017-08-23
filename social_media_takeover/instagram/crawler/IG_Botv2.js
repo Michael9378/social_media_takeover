@@ -183,12 +183,12 @@ function saveTopFollowings() {
     var expectedResponses = 9 * tags.length;
     var i = 0;
 
-    timeoutLoop(i, tags.length, 9 * WAIT_ON_PAGE_TIME, function () {
+    timeoutLoop(0, tags.length, 9 * WAIT_ON_PAGE_TIME, function () {
         // set timeout loops to wait for WAIT_ON_PAGE_TIME and scrape top following and send to db as tag interested
         var tag = tags[i];
         var j = 0;
 
-        timeoutLoop(j, 9, WAIT_ON_PAGE_TIME, function () {
+        timeoutLoop(0, 9, WAIT_ON_PAGE_TIME, function () {
             var topPosterId = tag.edge_hashtag_to_top_posts.edges[j].node.owner.id;
             getUserFollowBase(topPosterId, true, MAX_USER_SCRAPE, function (response) {
                 // success
@@ -208,7 +208,9 @@ function saveTopFollowings() {
                 // error
                 logEvent(2, "saveTopFollowings: Failed to get top following for user: " + tag.edge_hashtag_to_top_posts.edges[j].node.owner.username, null);
             });
+            j++;
         }, null);
+        i++;
     }, function () {
 
         // set an interval to periodically check if we got all our responses back
@@ -251,6 +253,7 @@ function savePotentialFollows() {
                 // error
                 logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i], null);
             });
+            i++;
         }, finishedRunningDailyTasks);
     }, function () {
         // error
@@ -1081,12 +1084,14 @@ function setLog(timestamp, logType, log, callback) {
                 console.log(timeStamp + ": Error \"" + msg + "\"");
                 localData.operation.errorLog.Add(timeStamp + ": Error \"Unable to save log to database.\"");
             }
-            callback();
+            if (typeof callback === 'function')
+                callback();
         },
         error: function (jqXHR, textStatus, errorThrown) {
             console.log(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
             localData.operation.errorLog.Add(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
-            callback();
+            if (typeof callback === 'function')
+                callback();
         }
     });
 }
