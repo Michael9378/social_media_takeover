@@ -36,6 +36,7 @@ var localData;
 var MAX_USER_SCRAPE = 2000;
 // TODO: Fine tune wait times
 var WAIT_ON_PAGE_TIME = 3000;
+var MAX_GET_POSTS = 100;
 
 // main function for bot to run
 function main() {
@@ -69,7 +70,11 @@ main();
 ***************** Bot Functions ****************
 ************************************************/
 
-// returns true if we are waiting for a callback to execute and reload page.
+/***********************************************
+***************** Daily Tasks ******************
+************************************************/
+
+// returns false if we dont need to run daily tasks.
 function checkAndRunDailyTasks() {
 
     // TODO MAKE SURE YOU SAVE LOCAL DATA BEFORE RELOADING!!!
@@ -79,20 +84,40 @@ function checkAndRunDailyTasks() {
     // get milliseconds in a day for comparison
     var millisecondsInADay = 1000 * 60 * 60 * 24;
     // if it has been less than a day since the last daily timer, then skip everything else
-    if (curTime - localData.operation.dailyTimer < millisecondsInADay)
+    if (curTime - localData.operation.dailyTimer < millisecondsInADay )
         return false;
 
-    /***************/
-    /* Daily Tasks */
-    /***************/
+    clearDailyTotals();
+    // saveCurUserInfo will cascade the rest of the daily tasks
+    // everything is async so as to prevent querying instagram too quickly
+    saveCurUserInfo();
 
-    if (!localData.operation.flags.dailyCleared)
-        clearDailyTotals();
+    // break out of main and let the async calls in this function finish
+    return true;
+}
 
-    // scrape current user for info
+function clearDailyTotals() {
+
+    // main function flags
+    localData.operation.flags.likeFollowUsers = 0;
+    localData.operation.flags.passiveTags = 0;
+
+    // indexes for follow/unfollow. Arrays will be populated at once in a single set
+    localData.operation.lists.followListIndex = 0;
+    localData.operation.lists.unfollowListIndex = 0;
+
+    // reset daily counters
+    localData.operation.counters.dailyLikes = 0;
+    localData.operation.counters.dailyFollows = 0;
+    localData.operation.counters.dailyTaskCounter = 0;
+
+    // reset lists that are built with .push()
+    localData.operation.lists.tagPages = [];
+}
+
+function saveCurUserInfo() {
     getUserInfo(localData.user.username, function (response) {
         // success
-
         // save the response and delete unnecessary info
         response = response.user;
         delete response.country_block;
@@ -103,138 +128,147 @@ function checkAndRunDailyTasks() {
         localData.user.igObj = response;
         // save for safety
         saveLocalData(localData);
+        // TODO: send update local data obj in db
 
-        afterGetUserInfo();
+        // call to get tag page info
+        saveTagPages();
     }, function () {
         // error
-        // TODO
+        logEvent(2, "saveUserInfo: Couldnt save current user info.", saveTagPages);
     });
-
-    // get tag page info
-    function afterGetUserInfo() {
-        // we have the user info stored in the local data.
-        var tags = localData.user.tagInterests;
-        var responses = 0;
-        for (var i = 0; i < tags.length; i++) {
-            getTagPage(tags[i], 100, function (response) {
-                // success
-                responses++;
-                response = response.data.hashtag;
-                localData.operation.lists.tagPages.push(response);
-                // check if we got all our responses back
-                if (response >= tags.length) {
-                    // we got all our reponses back, call after get tag pages
-                    afterGetTagPages();
-                }
-            }, function () {
-                // error
-                // TODO
-            });
-        }
-    }
-
-    // scrape top poster follow base for tag interested users
-    function afterGetTagPages() {
-        // we have all our tag pages scraped. Get follow base for top posters in each tag and label them as tag interested
-        var tags = localData.operation.lists.tagPages;
-        var responses = 0;
-        var expectedResponses = 9 * tags.length;
-        var i = 0;
-
-        timeoutLoop(i, tags.length, 9*WAIT_ON_PAGE_TIME, function () {
-            // set timeout loops to wait for WAIT_ON_PAGE_TIME and scrape top following and send to db as tag interested
-            var tag = tags[i];
-            var j = 0;
-
-            timeoutLoop(j, 9, WAIT_ON_PAGE_TIME, function () {
-                var topPosterId = tag.edge_hashtag_to_top_posts.edges[j].node.owner.id;
-                getUserFollowBase(topPosterId, true, 2500, function (response) {
-                    // success
-                    response = response.data.user.edge_followed_by.edges;
-                    var formattedResponse = [];
-                    for (var i = 0; i < response.length; i++) {
-                        formattedResponse.push(response[i].node.username);
-                    }
-
-                    // add the users in the database
-                    interestMassSet(formattedResponse, tag.name, null, function () {
-                        // error
-                        logEvent(2, "interestMassSet: Couldn't set a ton of users.", null);
-                    });
-
-                }, function () {
-                    // error
-                    logEvent(2, "afterGetTagPages: Failed to get top following for user: " + topPosterId, null);
-                });
-            }, null);
-        }, function () {
-            // set an interval to periodically check if we got all our responses back
-            var responseChecker = setInterval(function () {
-                // do the check in here
-                if (responses >= expectedResponses) {
-                    clearInterval(responseChecker);
-                    afterGetTopFollowings();
-                }
-            }, 500);
-
-            // clear interval and move on after 60 seconds
-            setTimeout(function () {
-                // check if we have everything
-                if (responses < expectedResponses) {
-                    // we timed out and never moved on
-                    logEvent(2, "afterGetTagPages: Timed out trying to get top post following for tags.", function () {
-                        clearInterval(responseChecker);
-                        afterGetTopFollowings();
-                    });
-                }
-            }, 60 * 1000);
-        });
-    }
-
-    // get potential follows info
-    function afterGetTopFollowings(){
-        userGetMissing(localData.operation.lists.tagInterests, 2000, function (response) {
-            // success
-            // response should hold list of users that we need to get user info for
-            var i = 0;
-            timeoutLoop(i, response.length, WAIT_ON_PAGE_TIME, function () {
-                getUserInfo(response[i], function (userObj) {
-                    // success
-                    // TODO: Add user id to user db table
-                    userSet(userObj.username);
-                }, function () {
-                    // error
-                    logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i], null);
-                });
-            }, function () {
-                // done looping
-            })
-        }, function () {
-            // error
-            logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
-        });
-    }
-
-    // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
-    localData.operation.dailyTimer += millisecondsInADay;
-    localData.operation.flags.dailyCleared = 0;
-    // return false, we don't have to wait for a callback to reload the page
-    return false;
 }
 
-function clearDailyTotals() {
+// get tag page info
+function saveTagPages() {
+    // we have the user info stored in the local data.
+    var tags = localData.user.tagInterests;
+    var responses = 0;
+    for (var i = 0; i < tags.length; i++) {
+        getTagPage(tags[i], MAX_GET_POSTS, function (response) {
+            // success
+            responses++;
+            response = response.data.hashtag;
+            localData.operation.lists.tagPages.push(response);
+            // check if we got all our responses back
+            if (responses >= tags.length) {
+                // we got all our reponses back, call after get tag pages
+                saveTopFollowings();
+            }
+        }, function () {
+            // error
+            logEvent(2, "saveTagPages: couldnt get tag page from instagram", function () {
+                responses++;
+                // check if we got all our responses back
+                if (responses >= tags.length) {
+                    // we got all our reponses back, call after get tag pages
+                    saveTopFollowings();
+                }
+            });
+        });
+    }
+    setTimeout(function () {
+        // check if we have moved on yet or timed out
+        if (responses < tags.length) {
+            logEvent(2, "saveTagPages: we timed out.", saveTopFollowings);
+        }
+    }, 20 * 1000);
+}
 
-    data.operation.flags.dailyCleared = 1;
-    data.operation.flags.likeFollowUsers = 0;
-    data.operation.flags.passiveTags = 0;
+// scrape top poster follow base for tag interested users
+function saveTopFollowings() {
+    // we have all our tag pages scraped. Get follow base for top posters in each tag and label them as tag interested
+    var tags = localData.operation.lists.tagPages;
+    var responses = 0;
+    // 9 top posters for each tag page
+    var expectedResponses = 9 * tags.length;
+    var i = 0;
 
-    data.operation.lists.followListIndex = 0;
-    data.operation.lists.unfollowListIndex = 0;
+    timeoutLoop(i, tags.length, 9 * WAIT_ON_PAGE_TIME, function () {
+        // set timeout loops to wait for WAIT_ON_PAGE_TIME and scrape top following and send to db as tag interested
+        var tag = tags[i];
+        var j = 0;
 
-    data.operation.counters.dailyLikes = 0;
-    data.operation.counters.dailyFollows = 0;
-    data.operation.counters.dailyTimer = 0;
-    data.operation.counters.dailyTaskCounter = 0;
+        timeoutLoop(j, 9, WAIT_ON_PAGE_TIME, function () {
+            var topPosterId = tag.edge_hashtag_to_top_posts.edges[j].node.owner.id;
+            getUserFollowBase(topPosterId, true, MAX_USER_SCRAPE, function (response) {
+                // success
+                response = response.data.user.edge_followed_by.edges;
+                var formattedResponse = [];
+                for (var k = 0; k < response.length; k++) {
+                    formattedResponse.push(response[k].node.username);
+                }
+
+                // add the users in the database
+                interestMassSet(formattedResponse, tag.name, null, function () {
+                    // error
+                    logEvent(2, "saveTopFollowings: Couldn't set a ton of users.", null);
+                });
+
+            }, function () {
+                // error
+                logEvent(2, "saveTopFollowings: Failed to get top following for user: " + tag.edge_hashtag_to_top_posts.edges[j].node.owner.username, null);
+            });
+        }, null);
+    }, function () {
+
+        // set an interval to periodically check if we got all our responses back
+        var responseChecker = setInterval(function () {
+            // do the check in here
+            if (responses >= expectedResponses) {
+                clearInterval(responseChecker);
+                savePotentialFollows();
+            }
+        }, 500);
+
+        // clear interval and move on after 60 seconds
+        setTimeout(function () {
+            // check if we have everything
+            if (responses < expectedResponses) {
+                // we timed out and never moved on
+                logEvent(2, "saveTopFollowings: Timed out trying to get top post following for tags.", function () {
+                    clearInterval(responseChecker);
+                    savePotentialFollows();
+                });
+            }
+        }, 60 * 1000);
+    });
+}
+
+// get potential follows info
+function savePotentialFollows() {
+    // TODO: save info from recent posts in localData.operation.lists.tagPages
+
+    userGetMissing(localData.operation.lists.tagInterests, MAX_USER_SCRAPE, function (response) {
+        // success
+        // response should hold list of users that we need to get user info for
+        var i = 0;
+        timeoutLoop(i, response.length, WAIT_ON_PAGE_TIME, function () {
+            getUserInfo(response[i], function (userObj) {
+                // success
+                // TODO: Add user id to user db table
+                userSet(userObj.username);
+            }, function () {
+                // error
+                logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i], null);
+            });
+        }, finishedRunningDailyTasks);
+    }, function () {
+        // error
+        logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
+        finishedRunningDailyTasks();
+    });
+}
+
+function finishedRunningDailyTasks() {
+    // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
+    localData.operation.dailyTimer += millisecondsInADay;
+    // TODO: Get list of users to follow/like
+    localData.operation.flags.likeFollowUsers = 1;
+
+    // save local data before task reload
+    saveLocalData(localData);
+    // reload page to start liking/following/unfollow tasks
+    location.reload();
 }
 
 /***********************************************
@@ -473,7 +507,6 @@ function getLocalData() {
 
         data.operation = {};
         data.operation.flags = {};
-        data.operation.flags.dailyCleared = 1;
         data.operation.flags.likeFollowUsers = 0;
         data.operation.flags.passiveTags = 0;
 
@@ -489,12 +522,12 @@ function getLocalData() {
         data.operation.counters = {};
         data.operation.counters.dailyLikes = 0;
         data.operation.counters.dailyFollows = 0;
-        data.operation.counters.globalLikes = 0;
-        data.operation.counters.globalFollows = 0;
         data.operation.counters.dailyTimer = 0;
         data.operation.counters.dailyTaskCounter = 0;
         data.operation.counters.pageStuckUrl = "";
         data.operation.counters.pageStuckCounter = 0;
+        data.operation.counters.globalLikes = 0;
+        data.operation.counters.globalFollows = 0;
 
         localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
         // logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
