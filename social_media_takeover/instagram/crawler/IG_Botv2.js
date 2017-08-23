@@ -601,6 +601,11 @@ function checkForStuckPage() {
 ************************************************/
 
 function botActionFollowSet(user, follows, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/botaction_follows/set/",
         data: {
@@ -622,6 +627,11 @@ function botActionFollowSet(user, follows, success, error) {
 }
 
 function botActionFollowGet(user, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/botaction_follows/get/",
         data: {
@@ -641,6 +651,11 @@ function botActionFollowGet(user, success, error) {
 }
 
 function botActionLikeSet(user, post, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/botaction_like/set/",
         data: {
@@ -662,6 +677,11 @@ function botActionLikeSet(user, post, success, error) {
 }
 
 function botActionLikeGet(user, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/botaction_like/get/",
         data: {
@@ -682,6 +702,11 @@ function botActionLikeGet(user, success, error) {
 
 // TODO: Add user id to user db table
 function userSet(username, userid, num_posts, num_followers, num_following, profile_pic, real_name, bio, website, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/user/set/",
         data: {
@@ -710,6 +735,11 @@ function userSet(username, userid, num_posts, num_followers, num_following, prof
 }
 
 function userMassSet(users, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/user/set/mass_set.php",
         data: {
@@ -730,6 +760,11 @@ function userMassSet(users, success, error) {
 }
 
 function userGet(user, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/user/get/",
         data: {
@@ -749,6 +784,11 @@ function userGet(user, success, error) {
 }
 
 function userGetMissing(tagInterests, limit, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/user/get/missing.php",
         data: {
@@ -770,6 +810,11 @@ function userGetMissing(tagInterests, limit, success, error) {
 }
 
 function followSet(user, follows, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/follows/set/",
         data: {
@@ -791,6 +836,11 @@ function followSet(user, follows, success, error) {
 }
 
 function followBaseSet(user, followBase, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/follows/set/mass_set.php",
         data: {
@@ -812,6 +862,11 @@ function followBaseSet(user, followBase, success, error) {
 }
 
 function followGetAutoFollow(user, limit, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/follows/get/auto_follows.php",
         data: {
@@ -833,6 +888,11 @@ function followGetAutoFollow(user, limit, success, error) {
 }
 
 function followGetAutoUnfollow(user, limit, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/follows/get/auto_unfollows.php",
         data: {
@@ -854,6 +914,11 @@ function followGetAutoUnfollow(user, limit, success, error) {
 }
 
 function postSet(user, post, time, likes, desc, loc, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/post/set/",
         data: {
@@ -879,6 +944,11 @@ function postSet(user, post, time, likes, desc, loc, success, error) {
 }
 
 function postGet(post, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/post/get/",
         data: {
@@ -898,6 +968,11 @@ function postGet(post, success, error) {
 }
 
 function tagSet(tag, num_posts, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/tag/set/",
         data: {
@@ -919,6 +994,11 @@ function tagSet(tag, num_posts, success, error) {
 }
 
 function tagGet(tag, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/tag/get/",
         data: {
@@ -939,6 +1019,11 @@ function tagGet(tag, success, error) {
 }
 
 function interestMassSet(users, tag, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/interest/set/mass_set.php",
         data: {
@@ -960,6 +1045,11 @@ function interestMassSet(users, tag, success, error) {
 }
 
 function interestSet(user, tag, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/interest/set/",
         data: {
@@ -981,6 +1071,11 @@ function interestSet(user, tag, success, error) {
 }
 
 function interestGet(tag, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/interest/get/",
         data: {
@@ -1001,6 +1096,11 @@ function interestGet(tag, success, error) {
 }
 
 function likeSet(user, post, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/like/set/",
         data: {
@@ -1022,6 +1122,11 @@ function likeSet(user, post, success, error) {
 }
 
 function likeGet(post, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/like/get/",
         data: {
@@ -1042,6 +1147,11 @@ function likeGet(post, success, error) {
 }
 
 function commentSet(user, post, comment, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/comment/set/",
         data: {
@@ -1064,6 +1174,11 @@ function commentSet(user, post, comment, success, error) {
 }
 
 function commentGet(post, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     jQuery.post({
         url: api_url + "/comment/get/",
         data: {
