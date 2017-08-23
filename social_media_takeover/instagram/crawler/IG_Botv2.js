@@ -37,6 +37,7 @@ var MAX_USER_SCRAPE = 2000;
 // TODO: Fine tune wait times
 var WAIT_ON_PAGE_TIME = 3000;
 var MAX_GET_POSTS = 100;
+var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
 // main function for bot to run
 function main() {
@@ -81,10 +82,8 @@ function checkAndRunDailyTasks() {
 
     // get current time
     var curTime = new Date();
-    // get milliseconds in a day for comparison
-    var millisecondsInADay = 1000 * 60 * 60 * 24;
     // if it has been less than a day since the last daily timer, then skip everything else
-    if (curTime - localData.operation.dailyTimer < millisecondsInADay )
+    if (curTime - localData.operation.dailyTimer < MILLISECONDS_IN_A_DAY)
         return false;
 
     clearDailyTotals();
@@ -257,7 +256,7 @@ function savePotentialFollows() {
                 usersToSet.push(userObj.user);
             }, function () {
                 // error
-                logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i], null);
+                logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i].user_id, null);
             });
             i++;
         }, function () {
@@ -277,7 +276,7 @@ function savePotentialFollows() {
 
 function finishedRunningDailyTasks() {
     // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
-    localData.operation.dailyTimer += millisecondsInADay;
+    localData.operation.dailyTimer += MILLISECONDS_IN_A_DAY;
     // TODO: Get list of users to follow/like
     localData.operation.flags.likeFollowUsers = 1;
 
