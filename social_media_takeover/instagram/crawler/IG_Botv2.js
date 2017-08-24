@@ -258,6 +258,8 @@ function savePotentialFollows() {
                 logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i].user_id, null);
             });
             i++;
+            // TODO: Send chunks of users off in case of error.
+
         }, function () {
             // finished looping. Save users to database
             userMassSet(usersToSet, finishedRunningDailyTasks, function () {
