@@ -3,8 +3,21 @@
 // gets user in the follows table that arent listed in the user table.
 
 require getcwd().'/../../lib/h.php';
+if( isset( $_POST["scrape_limit"] ) && isset( $_POST["user_id"] ) ){
 
-if( isset( $_POST["scrape_limit"] ) && isset( $_POST["tag_interest"] ) ){
+	$scrape_limit = $_POST["scrape_limit"];
+	$user_id = $_POST["user_id"];
+	$month_ago =  date('Y-m-d',strtotime("-30 days"));
+
+	$sql = "SELECT DISTINCT `user_id` FROM `ig_follows` WHERE ";
+	$sql .= "`follows_user_id` = '" . $user_id . "' ";
+	$sql .= "&& `user_id` NOT IN(";
+	$sql .= "SELECT `user_id` FROM `ig_users` WHERE `freshness` < '" . $month_ago . "' ";	
+	$sql .= ") LIMIT 0,".$scrape_limit.";";
+
+	jr( sql_get_query( $sql ) );
+}
+else if( isset( $_POST["scrape_limit"] ) && isset( $_POST["tag_interest"] ) ){
 
 	$scrape_limit = $_POST["scrape_limit"];
 	$tag_interest = json_decode($_POST["tag_interest"]);

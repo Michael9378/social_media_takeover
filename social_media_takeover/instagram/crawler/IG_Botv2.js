@@ -30,6 +30,7 @@ var localData;
 var MAX_USER_SCRAPE = 2000;
 // TODO: Fine tune wait times
 var WAIT_ON_PAGE_TIME = 3000;
+var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MAX_GET_POSTS = 100;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
@@ -181,12 +182,12 @@ function saveTopFollowings() {
     var expectedResponses = 9 * tags.length;
     var i = 0;
 
-    timeoutLoop(0, tags.length, 9 * WAIT_ON_PAGE_TIME, function () {
-        // set timeout loops to wait for WAIT_ON_PAGE_TIME and scrape top following and send to db as tag interested
+    timeoutLoop(0, tags.length, 9 * WAIT_BETWEEN_REQUEST_TIME, function () {
+        // set timeout loops to wait for WAIT_BETWEEN_REQUEST_TIME and scrape top following and send to db as tag interested
         var tag = tags[i];
         var j = 0;
 
-        timeoutLoop(0, 9, WAIT_ON_PAGE_TIME, function () {
+        timeoutLoop(0, 9, WAIT_BETWEEN_REQUEST_TIME, function () {
             var topPoster = tag.edge_hashtag_to_top_posts.edges[j].node.owner;
             getUserFollowBase(topPoster.id, true, MAX_USER_SCRAPE, function (response) {
                 // success
@@ -247,12 +248,25 @@ function savePotentialFollows() {
         // TODO: Scrape current user following here too (only add followers that are a week or a month old) to use as analysis for potential follows.
         var i = 0;
         var usersToSet = []
-        timeoutLoop(i, response.length, WAIT_ON_PAGE_TIME, function () {
+        timeoutLoop(i, response.length, WAIT_BETWEEN_REQUEST_TIME, function () {
             getUserInfo(response[i].user_id, function (userObj) {
                 // success
                 // TODO: Add user id to user db table
                 console.log("Got user info " + i + "/" + response.length + " : " + userObj.user.username);
                 usersToSet.push(userObj.user);
+                // every 10 responses, send a chunk to the db
+                if(i%10 == 9){
+                    var chunk = [];
+                    for(var j = 0; j < 10; j++)
+                        chunk.push(usersToSet.pop());
+                    // sending of chunk to db
+                    userMassSet(chunk, function(){
+                        console.log("Sent 10 users to the database.");
+                    }, function () {
+                        // failed to set the chunk. Log event
+                        logEvent(2, "savePotentialFollows: failed to send a chunk of 10 users to db.", null);
+                    });
+                }
             }, function () {
                 // error
                 logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i].user_id, null);
@@ -261,12 +275,16 @@ function savePotentialFollows() {
             // TODO: Send chunks of users off in case of error.
 
         }, function () {
-            // finished looping. Save users to database
-            userMassSet(usersToSet, finishedRunningDailyTasks, function () {
-                // failed to set the chunk. Log event
-                logEvent(2, "savePotentialFollows: failed to send a chunk to db.", null);
+            // finished looping. Save remaining users to database
+            if(usersToSet.length == 0)
                 finishedRunningDailyTasks();
-            });
+            else {
+                userMassSet(usersToSet, finishedRunningDailyTasks, function () {
+                    // failed to set the chunk. Log event
+                    logEvent(2, "savePotentialFollows: failed to send remainings chunk to db.", null);
+                    finishedRunningDailyTasks();
+                });
+            }
         });
     }, function () {
         // error
