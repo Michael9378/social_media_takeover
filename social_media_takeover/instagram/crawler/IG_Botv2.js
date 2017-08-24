@@ -59,7 +59,7 @@ function main() {
     // switch to passive tasks to run in down time.
 }
 
-// main();
+main();
 
 
 /***********************************************
@@ -148,6 +148,7 @@ function saveTagPages() {
             response = response.data.hashtag;
             console.log("Got tag page: " + response.name);
             localData.operation.lists.tagPages.push(response);
+            saveLocalData(localData);
             // check if we got all our responses back
             if (responses >= tags.length) {
                 // we got all our reponses back, call after get tag pages
@@ -312,7 +313,8 @@ function finishedRunningDailyTasks() {
     // save local data before task reload
     saveLocalData(localData);
     // reload page to start liking/following/unfollow tasks
-    location.reload();
+    // location.reload();
+    alert("done");
 }
 
 /***********************************************

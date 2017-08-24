@@ -12,7 +12,7 @@ if( isset( $_POST["scrape_limit"] ) && isset( $_POST["user_id"] ) ){
 	$sql = "SELECT DISTINCT `user_id` FROM `ig_follows` WHERE ";
 	$sql .= "`follows_user_id` = '" . $user_id . "' ";
 	$sql .= "&& `user_id` NOT IN(";
-	$sql .= "SELECT `user_id` FROM `ig_users` WHERE `freshness` < '" . $month_ago . "' ";	
+	$sql .= "SELECT `user_id` FROM `ig_users` WHERE `freshness` > '" . $month_ago . "' ";	
 	$sql .= ") LIMIT 0,".$scrape_limit.";";
 
 	jr( sql_get_query( $sql ) );
