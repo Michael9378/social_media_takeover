@@ -3,14 +3,15 @@
 
 require getcwd().'/../../lib/h.php';
 
-if( isset( $_POST["log_msg"] ) && isset( $_POST["log_type"] ) && isset( $_POST["log_time"] ) ){
+date_default_timezone_set("America/Phoenix");
 
-	$log_time = $_POST["log_time"];
+if( isset( $_POST["log_msg"] ) && isset( $_POST["log_type"] ) ){
+
 	$log_type = $_POST["log_type"];
 	$log_msg = $_POST["log_msg"];
 	
 	$sql = "INSERT INTO `ig_log` ";
-	$sql .= "VALUES('".$log_time."', '".$log_type."', '".$log_msg."');";
+	$sql .= "VALUES('".date("Y-m-d H:i:s")."', '".$log_type."', '".$log_msg."');";
 	
 	jr( sql_set_query( $sql ) );
 }

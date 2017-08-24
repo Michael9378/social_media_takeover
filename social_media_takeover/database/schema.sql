@@ -128,7 +128,7 @@ CREATE TABLE ig_botaction_like
 
 CREATE TABLE ig_log
 (
-	log_time DATE,
+	log_time DATETIME,
 	log_type VARCHAR(10),
 	log_msg VARCHAR(200),
 	PRIMARY KEY(log_time, log_msg)

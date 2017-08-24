@@ -59,7 +59,7 @@ function main() {
     // switch to passive tasks to run in down time.
 }
 
-main();
+// main();
 
 
 /***********************************************
@@ -523,12 +523,12 @@ function logEvent(msgType, msg, callback) {
         case 1:
             console.log(timeStamp + ": Warning \"" + msg + "\"");
             localData.operation.lists.errorLog.push(timeStamp + ": Warning \"" + msg + "\"");
-            setLog(timeStamp.getTime(), msgType, msg, callback);
+            setLog(msgType, msg, callback);
             break;
         case 2:
             console.log(timeStamp + ": Error \"" + msg + "\"");
             localData.operation.lists.errorLog.push(timeStamp + ": Error \"" + msg + "\"");
-            setLog(timeStamp.getTime(), msgType, msg, callback);
+            setLog(msgType, msg, callback);
             break;
         default:
             console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
@@ -1239,26 +1239,27 @@ function commentGet(post, success, error) {
     });
 }
 
-function setLog(timestamp, logType, log, callback) {
+function setLog(logType, log, callback) {
+
     jQuery.post({
         url: api_url + "/log/set/",
         data: {
-            log_time: timestamp,
             log_type: logType,
             log_msg: log
         },
         success: function (result) {
+            var timeStamp = (new Date()).getTime();
             result = JSON.parse(result);
             if (!result) {
-                console.log(timeStamp + ": Error \"" + msg + "\"");
-                localData.operation.errorLog.Add(timeStamp + ": Error \"Unable to save log to database.\"");
+                localData.operation.lists.errorLog.push(timeStamp + ": Error \"Unable to save log to database.\"");
             }
             if (typeof callback === 'function')
                 callback();
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            console.log(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
-            localData.operation.errorLog.Add(timeStamp + ": Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
+            var timeStamp = (new Date()).getTime();
+            console.log("Log Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
+            localData.operation.lists.errorLog.Add("Log Error \"" + url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown + "\"");
             if (typeof callback === 'function')
                 callback();
         }
