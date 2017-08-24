@@ -59,7 +59,7 @@ function main() {
     // switch to passive tasks to run in down time.
 }
 
-main();
+//main();
 
 
 /***********************************************
@@ -242,55 +242,65 @@ function saveTopFollowings() {
 function savePotentialFollows() {
     // TODO: save info from recent posts in localData.operation.lists.tagPages
 
-    userGetMissing(localData.operation.lists.tagInterests, MAX_USER_SCRAPE, function (response) {
-        // success
-        // response should hold list of users that we need to get user info for
-        // TODO: Scrape current user following here too (only add followers that are a week or a month old) to use as analysis for potential follows.
-        var i = 0;
-        var usersToSet = []
-        timeoutLoop(i, response.length, WAIT_BETWEEN_REQUEST_TIME, function () {
-            getUserInfo(response[i].user_id, function (userObj) {
-                // success
-                // TODO: Add user id to user db table
-                console.log("Got user info " + i + "/" + response.length + " : " + userObj.user.username);
-                usersToSet.push(userObj.user);
-                // every 10 responses, send a chunk to the db
-                if(i%10 == 9){
-                    var chunk = [];
-                    for(var j = 0; j < 10; j++)
-                        chunk.push(usersToSet.pop());
-                    // sending of chunk to db
-                    userMassSet(chunk, function(){
-                        console.log("Sent 10 users to the database.");
-                    }, function () {
+    userGetMissing(localData.user.username, 2000, function () { afterGetMissingFollowing(response); }, function () {
+        logEvent(2, "savePotentialFollows: failed to get cur user following.", null);
+        afterGetMissingFollowing([]);
+    });
+
+    function afterGetMissingFollowing(missUsers) {
+        userGetMissing(localData.operation.lists.tagInterests, MAX_USER_SCRAPE, function (response) {
+            // success
+            // response should hold list of users that we need to get user info for
+            // add passed users to beginning of array
+            response = missUsers.concat(response);
+
+            var i = 0;
+            var usersToSet = []
+            timeoutLoop(i, response.length, WAIT_BETWEEN_REQUEST_TIME, function () {
+                getUserInfo(response[i].user_id, function (userObj) {
+                    // success
+                    // TODO: Add user id to user db table
+                    console.log("Got user info " + i + "/" + response.length + " : " + userObj.user.username);
+                    usersToSet.push(userObj.user);
+                    // every 10 responses, send a chunk to the db
+                    if (i % 10 == 9) {
+                        var chunk = [];
+                        for (var j = 0; j < 10; j++)
+                            chunk.push(usersToSet.pop());
+                        // sending of chunk to db
+                        userMassSet(chunk, function () {
+                            console.log("Sent 10 users to the database.");
+                        }, function () {
+                            // failed to set the chunk. Log event
+                            logEvent(2, "savePotentialFollows: failed to send a chunk of 10 users to db.", null);
+                        });
+                    }
+                }, function () {
+                    // error
+                    logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i].user_id, null);
+                });
+                i++;
+                // TODO: Send chunks of users off in case of error.
+
+            }, function () {
+                // finished looping. Save remaining users to database
+                if (usersToSet.length == 0)
+                    finishedRunningDailyTasks();
+                else {
+                    userMassSet(usersToSet, finishedRunningDailyTasks, function () {
                         // failed to set the chunk. Log event
-                        logEvent(2, "savePotentialFollows: failed to send a chunk of 10 users to db.", null);
+                        logEvent(2, "savePotentialFollows: failed to send remainings chunk to db.", null);
+                        finishedRunningDailyTasks();
                     });
                 }
-            }, function () {
-                // error
-                logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i].user_id, null);
             });
-            i++;
-            // TODO: Send chunks of users off in case of error.
-
         }, function () {
-            // finished looping. Save remaining users to database
-            if(usersToSet.length == 0)
-                finishedRunningDailyTasks();
-            else {
-                userMassSet(usersToSet, finishedRunningDailyTasks, function () {
-                    // failed to set the chunk. Log event
-                    logEvent(2, "savePotentialFollows: failed to send remainings chunk to db.", null);
-                    finishedRunningDailyTasks();
-                });
-            }
+            // error
+            logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
+            finishedRunningDailyTasks();
         });
-    }, function () {
-        // error
-        logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
-        finishedRunningDailyTasks();
-    });
+    }
+    
 }
 
 function finishedRunningDailyTasks() {
@@ -808,12 +818,24 @@ function userGetMissing(tagInterests, limit, success, error) {
     if (typeof error != 'function')
         error = function () { };
 
-    jQuery.post({
-        url: api_url + "/user/get/missing.php",
-        data: {
+    var dataThis = {scrape_limit: limit};
+
+    if (typeof tagInterests == "string") {
+        dataThis = {
+            scrape_limit: limit,
+            user_id: tagInterests
+        };
+    }
+    else if(typeof tagInterests == "object") {
+        dataThis = {
             scrape_limit: limit,
             tag_interest: JSON.stringify(tagInterests)
-        },
+        };
+    }
+
+    jQuery.post({
+        url: api_url + "/user/get/missing.php",
+        data: dataThis,
         success: function (result) {
             result = JSON.parse(result);
             if (result)
