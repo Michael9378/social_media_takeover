@@ -59,7 +59,7 @@ function main() {
     // switch to passive tasks to run in down time.
 }
 
-//main();
+main();
 
 
 /***********************************************
@@ -192,7 +192,7 @@ function saveTopFollowings() {
             getUserFollowBase(topPoster.id, true, MAX_USER_SCRAPE, function (response) {
                 // success
                 responses++;
-                console.log("Got following " + responses + "/" + expectedResponses +" : " + topPoster.username);
+                console.log("Got following " + responses + "/" + expectedResponses);
                 response = response.data.user.edge_followed_by.edges;
                 var formattedResponse = [];
                 for (var k = 0; k < response.length; k++) {
@@ -242,7 +242,7 @@ function saveTopFollowings() {
 function savePotentialFollows() {
     // TODO: save info from recent posts in localData.operation.lists.tagPages
 
-    userGetMissing(localData.user.username, 2000, function () { afterGetMissingFollowing(response); }, function () {
+    userGetMissing(localData.user.username, MAX_USER_SCRAPE, function (response) { afterGetMissingFollowing(response); }, function () {
         logEvent(2, "savePotentialFollows: failed to get cur user following.", null);
         afterGetMissingFollowing([]);
     });
