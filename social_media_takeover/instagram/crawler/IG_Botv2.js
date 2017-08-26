@@ -22,12 +22,14 @@
 
 // TODO: Optimize heavy duty sql querie
 // TODO: Create query to update the current user's follow base stats
+// TODO: Add table for 404'ed users and filter them out when pulling for missing users in the future
+// TODO: Filter out users that the bot has already auto followed
 
 // Global variables
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var localData;
-var MAX_USER_SCRAPE = 2000;
+var MAX_USER_SCRAPE = 2750;
 // TODO: Fine tune wait times
 var WAIT_ON_PAGE_TIME = 3000;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;

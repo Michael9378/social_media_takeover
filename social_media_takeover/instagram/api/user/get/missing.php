@@ -37,7 +37,7 @@ else if( isset( $_POST["scrape_limit"] ) && isset( $_POST["tag_interest"] ) ){
 	}
 	// trim the OR 
 	$sql = substr($sql, 0, -2);
-	$sql .= ") LIMIT 0,".$scrape_limit.";";
+	$sql .= ") ORDER BY RAND() LIMIT 0,".$scrape_limit.";";
 
 	jr( sql_get_query( $sql ) );
 }
