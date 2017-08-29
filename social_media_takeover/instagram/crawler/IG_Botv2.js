@@ -288,22 +288,31 @@ function savePotentialFollows() {
             }, function () {
                 // finished looping. Save remaining users to database
                 if (usersToSet.length == 0)
-                    finishedRunningDailyTasks();
+                    buildLikeFollowList();
                 else {
-                    userMassSet(usersToSet, finishedRunningDailyTasks, function () {
+                    userMassSet(usersToSet, buildLikeFollowList, function () {
                         // failed to set the chunk. Log event
                         logEvent(2, "savePotentialFollows: failed to send remainings chunk to db.", null);
-                        finishedRunningDailyTasks();
+                        buildLikeFollowList();
                     });
                 }
             });
         }, function () {
             // error
             logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
-            finishedRunningDailyTasks();
+            buildLikeFollowList();
         });
     }
     
+}
+
+function buildLikeFollowList() {
+    // grabs list of potential users to follow from the db
+    // then grabs their 9 most recent posts to see if they are relevant to the current user
+    // if there are 3 relevant posts, add the posts to the like list
+    // if not, add the user to the follow list
+    // call to finishedRunningDailyTasks
+    finishedRunningDailyTasks();
 }
 
 function finishedRunningDailyTasks() {
@@ -331,8 +340,17 @@ function getUserInfo(username, callback, error) {
         url: url,
         success: callback,
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
-            error();
+            // if we get a 404, then the user is private. Add them to private user table
+            if (jqXHR.status == 404) {
+                // call add to private table but dont log error. We expect some of these.
+                privUserSet(username);
+                callback();
+            }
+            else {
+                // log failed ajax call
+                logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+                error();
+            }
         }
     });
 }
@@ -733,7 +751,6 @@ function botActionLikeGet(user, success, error) {
     });
 }
 
-// TODO: Add user id to user db table
 function userSet(username, userid, num_posts, num_followers, num_following, profile_pic, real_name, bio, website, success, error) {
     if (typeof success != 'function')
         success = function () { };
@@ -763,6 +780,23 @@ function userSet(username, userid, num_posts, num_followers, num_following, prof
         error: function (jqXHR, textStatus, errorThrown) {
             logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
             error();
+        }
+    });
+}
+
+function privUserSet(username) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
+    jQuery.post({
+        url: api_url + "/user/set/private.php",
+        data: {
+            user_id: username
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
         }
     });
 }

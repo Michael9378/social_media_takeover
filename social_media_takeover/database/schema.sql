@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS ig_tagged_in_post;
 DROP TABLE IF EXISTS ig_botaction_follow;
 DROP TABLE IF EXISTS ig_botaction_like;
 DROP TABLE IF EXISTS ig_log;
+DROP TABLE IF EXISTS ig_private_users;
 
 CREATE TABLE ig_users
 (
@@ -132,6 +133,12 @@ CREATE TABLE ig_log
 	log_type VARCHAR(10),
 	log_msg VARCHAR(200),
 	PRIMARY KEY(log_time, log_msg)
+);
+
+CREATE TABLE ig_private_users
+(
+	user_id VARCHAR(35),
+	PRIMARY KEY (user_id)
 );
 
 /*
