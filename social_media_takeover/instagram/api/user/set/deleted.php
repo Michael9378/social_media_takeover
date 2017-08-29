@@ -7,7 +7,7 @@ if( isset( $_POST["user_id"] ) ){
 
 	$user_id = $_POST["user_id"];
 
-	$sql = "INSERT IGNORE INTO `ig_private_users` VALUES('".$user_id."');";
+	$sql = "INSERT IGNORE INTO `ig_deleted_users` VALUES('".$user_id."');";
 
 	jr( sql_set_query( $sql ) );
 }

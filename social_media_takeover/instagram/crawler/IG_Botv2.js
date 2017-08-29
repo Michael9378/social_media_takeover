@@ -340,10 +340,10 @@ function getUserInfo(username, callback, error) {
         url: url,
         success: callback,
         error: function (jqXHR, textStatus, errorThrown) {
-            // if we get a 404, then the user is private. Add them to private user table
+            // if we get a 404, then the user is deleted. Add them to deleted user table
             if (jqXHR.status == 404) {
                 // call add to private table but dont log error. We expect some of these.
-                privUserSet(username);
+                deletedUserSet(username);
                 callback();
             }
             else {
@@ -784,16 +784,42 @@ function userSet(username, userid, num_posts, num_followers, num_following, prof
     });
 }
 
-function privUserSet(username) {
+function deletedUserSet(username) {
     if (typeof success != 'function')
         success = function () { };
     if (typeof error != 'function')
         error = function () { };
 
     jQuery.post({
-        url: api_url + "/user/set/private.php",
+        url: api_url + "/user/set/deleted.php",
         data: {
             user_id: username
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+        }
+    });
+}
+
+function usersToFollowGet(limit, minimumPostsFromUsers, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
+    jQuery.post({
+        url: api_url + "/user/set/deleted.php",
+        data: {
+            user_id: localData.user.username,
+            limit: limit,
+            min_posts: minimumPostsFromUsers
+        },
+        success: function (result) {
+            result = JSON.parse(result);
+            if (result)
+                success(result);
+            else
+                error();
         },
         error: function (jqXHR, textStatus, errorThrown) {
             logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);

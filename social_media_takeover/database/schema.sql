@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS ig_tagged_in_post;
 DROP TABLE IF EXISTS ig_botaction_follow;
 DROP TABLE IF EXISTS ig_botaction_like;
 DROP TABLE IF EXISTS ig_log;
-DROP TABLE IF EXISTS ig_private_users;
+DROP TABLE IF EXISTS ig_deleted_users;
 
 CREATE TABLE ig_users
 (
@@ -135,55 +135,8 @@ CREATE TABLE ig_log
 	PRIMARY KEY(log_time, log_msg)
 );
 
-CREATE TABLE ig_private_users
+CREATE TABLE ig_deleted_users
 (
 	user_id VARCHAR(35),
 	PRIMARY KEY (user_id)
 );
-
-/*
-
-CREATE OR REPLACE VIEW ig_user_avgs AS
-	SELECT u2.user_id, ROUND(AVG(u1.user_num_posts)) AS posts, ROUND(AVG(u1.user_num_followers)) AS followers, ROUND(AVG(u1.user_num_following)) AS following
-	FROM ig_users as u1, ig_users as u2
-	WHERE u1.user_id IN 
-		(SELECT ig_follows.user_id 
-		FROM ig_follows 
-		WHERE ig_follows.follows_user_id = u2.user_id
-		AND 10 < 
-			(SELECT COUNT(*) 
-			FROM ig_follows
-			WHERE ig_follows.follows_user_id = u2.user_id))
-	GROUP BY u2.user_id;
-
-CREATE OR REPLACE VIEW ig_user_stats AS
-	SELECT owner_user.user_id AS owner_user_id,
-	follower_user.user_id AS follower_user_id, 
-	follower_user.user_num_posts, 
-	follower_user.user_num_followers, 
-	follower_user.user_num_following,
-	ROUND ( 
-		( ABS(follower_user.user_num_followers - ig_user_avgs.followers) + ABS(follower_user.user_num_following - ig_user_avgs.following) ) *
-		( (follower_user.user_num_followers + follower_user.user_num_following)/(ig_user_avgs.followers + ig_user_avgs.following) ) *
-		( follower_user.user_num_followers/follower_user.user_num_following ) *
-		( follower_user.user_num_posts/ig_user_avgs.posts )
-	) AS follow_rating
-	FROM ig_users AS follower_user, ig_users AS owner_user, ig_user_avgs 
-	WHERE follower_user.user_id IN (
-		SELECT user_id 
-		FROM ig_follows 
-		WHERE follows_user_id = owner_user.user_id
-		AND 10 < (
-			SELECT COUNT(*) 
-			FROM ig_follows
-			WHERE ig_follows.follows_user_id = owner_user.user_id
-		)
-	) 
-	AND ig_user_avgs.user_id = owner_user.user_id
-	AND follower_user.user_num_followers < follower_user.user_num_following
-	AND follower_user.user_num_following < 2000
-	AND follower_user.user_num_followers < 2000
-	AND follower_user.user_num_following > 75
-	AND follower_user.user_num_followers > 50
-	AND follower_user.user_num_posts > 0;
-*/
