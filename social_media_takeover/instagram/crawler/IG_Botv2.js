@@ -52,7 +52,7 @@ function main() {
     if (checkAndRunDailyTasks())
         return false;
 
-    console.log("Success!");
+    passiveTasks();
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
@@ -67,6 +67,42 @@ main();
 /***********************************************
 ***************** Bot Functions ****************
 ************************************************/
+
+/***********************************************
+**************** Passive Tasks *****************
+************************************************/
+
+function passiveTasks(){
+    var threeHours = 1000*60*60*3;
+    populateUsersLoop(threeHours);
+}
+
+function populateUsersLoop(runTime){
+    // loops and pulls missing users and updates info until runTime has expired
+    var resumeLooping = true;
+    // after runTime is up, set resumeLooping to false
+    setTimeout(function(){
+        resumeLooping = false;
+    }, runTime);
+    // timeout loop to get user info
+    timeoutLoop(0, 1000*60*60, 4000, function(){
+        // loop body
+
+        // check if we timed out yet
+        if(!resumeLooping){
+            alert("Done with timer.");
+            return;
+        }
+
+        // TODO:
+        // check if we need to pull more missing users
+        // if we do, pull users and add to missing users array
+        // then pull user info and update to database
+    }, function(){
+        // loop done
+        alert("Finished looping.");
+    });
+}
 
 /***********************************************
 ***************** Daily Tasks ******************
