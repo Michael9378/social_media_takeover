@@ -52,13 +52,14 @@ function main() {
     if (checkAndRunDailyTasks())
         return false;
 
-    console.log("Success!");
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
 
     // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
     // switch to passive tasks to run in down time.
+    console.log("Running passive tasks loop.");
+    passiveTasksLoop();
 }
 
 main();
@@ -283,7 +284,6 @@ function savePotentialFollows() {
                     logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i].user_id, null);
                 });
                 i++;
-                // TODO: Send chunks of users off in case of error.
 
             }, function () {
                 // finished looping. Save remaining users to database
@@ -326,6 +326,70 @@ function finishedRunningDailyTasks() {
     // reload page to start liking/following/unfollow tasks
     // location.reload();
     alert("done");
+}
+
+function passiveTasksLoop() {
+    // grab a fatty chunk of missing users and just loop until tomorrow.
+    userGetMissing(localData.operation.lists.tagInterests, MAX_USER_SCRAPE, function (response) {
+        // success
+        // response should hold list of users that we need to get user info for
+
+        // we running out of motherfuckers. Set timeout for a long ass time to avoid constantly trying to get users
+        if (response.length < 50) {
+            // wait 30 minutes then recheck
+            setTimeout(function () {
+                location.reload();
+            }, 1000 * 60 * 30);
+        }
+
+        var i = 0;
+        var usersToSet = []
+        timeoutLoop(i, response.length, WAIT_BETWEEN_REQUEST_TIME * 2, function () {
+            getUserInfo(response[i].user_id, function (userObj) {
+                // success
+                // TODO: Add user id to user db table
+                console.log("Got user info " + i + "/" + response.length + " : " + userObj.user.username);
+                usersToSet.push(userObj.user);
+                // every 10 responses, send a chunk to the db
+                if (i % 10 == 9) {
+                    var chunk = [];
+                    for (var j = 0; j < 10; j++)
+                        chunk.push(usersToSet.pop());
+                    // sending of chunk to db
+                    userMassSet(chunk, function () {
+                        console.log("Sent 10 users to the database.");
+                    }, function () {
+                        // failed to set the chunk. Log event
+                        logEvent(2, "savePotentialFollows: failed to send a chunk of 10 users to db.", null);
+                    });
+                }
+            }, function () {
+                // error
+                logEvent(2, "afterGetTopFollowings: Failed to get user info: " + response[i].user_id, null);
+            });
+            i++;
+
+        }, function () {
+            // finished looping. Reload page to check for daily tasks.
+            if (usersToSet.length == 0)
+                location.reload();
+            else {
+                userMassSet(usersToSet, function () {
+                    // success
+                    location.reload();
+                }, function () {
+                    // failed to set the chunk. Log event
+                    logEvent(2, "savePotentialFollows: failed to send remainings chunk to db.", null);
+                    location.reload();
+                });
+            }
+        });
+    }, function () {
+        // error
+        // wait and then try again
+        logEvent(2, "afterGetTopFollowings: Failed to get missing users.", null);
+        setTimeout(passiveTasksLoop, WAIT_BETWEEN_REQUEST_TIME * 10);
+    });
 }
 
 /***********************************************
