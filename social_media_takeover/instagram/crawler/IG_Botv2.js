@@ -55,6 +55,7 @@ function main() {
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
+    
 
     // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
     // switch to passive tasks to run in down time.
@@ -308,9 +309,13 @@ function savePotentialFollows() {
 
 function buildLikeFollowList() {
     // grabs list of potential users to follow from the db
-    // then grabs their 9 most recent posts to see if they are relevant to the current user
-    // if there are 3 relevant posts, add the posts to the like list
-    // if not, add the user to the follow list
+
+    // grab a 100-200 recent posts per tag
+    // filter posts by has more than 50 likes
+    // query the follow base of the user. Compare to follow base average to see if they are a reasonable mark
+    // /p/asdf/?__a=1 for the post and get the author username
+    // query user for recent posts and mark the first 3 of 9 posts that have relevant tags and add to like list.
+
     // call to finishedRunningDailyTasks
     finishedRunningDailyTasks();
 }
