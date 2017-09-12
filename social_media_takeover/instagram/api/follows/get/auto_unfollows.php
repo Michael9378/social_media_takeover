@@ -12,9 +12,9 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["num_unfollows"] ) ){
 	$sql .= "FROM `ig_follows` ";
 	$sql .= "WHERE `user_id` = '".$user_id."' ";
 	$sql .= "AND `follows_unfollow_date` <= '".date("Y-m-d")."' ";
-	$sql .= "AND `follows_unfollow_date` != '0000-00-00 ";
+	$sql .= "AND `follows_unfollow_date` != '0000-00-00' ";
 	$sql .= "ORDER BY `follows_unfollow_date` ASC ";
-	$sql .= "LIMIT 0,'".$num_unfollows."';";
+	$sql .= "LIMIT 0,".$num_unfollows.";";
 	
 	jr( sql_get_query( $sql ) );
 }

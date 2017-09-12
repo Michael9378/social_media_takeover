@@ -3,42 +3,178 @@
 
 require getcwd().'/../../lib/h.php';
 
-if( isset( $_POST["user_id"] ) && isset( $_POST["num_follows"] ) && isset($_POST["tag_name"]) ){
+if( isset( $_POST["user_id"] ) && isset( $_POST["limit"] ) && isset( $_POST["min_posts"] ) ){
 
 	$user_id = $_POST["user_id"];
-	$num_follows = $_POST["num_follows"];
-	$tag_name = $_POST["tag_name"];
-	$sql = "";
+	$limit = $_POST["limit"];
+	$min_posts = $_POST["min_posts"];
 
-	if( isset( $_POST["tag_name"] ) ){
-		$tag_name = $_POST["tag_name"];
-		$sql .= "SELECT DISTINCT `user_id` ";
-		$sql .= "FROM `ig_user_tag_interest` ";
-		$sql .= "WHERE `tag_name` == '".$tag_name."' AND `user_id` IN (";
-	}
+	$sql = 'SELECT follower_user_id as user_id
+FROM (SELECT follower_user.user_id AS follower_user_id,
+	follower_user.user_num_posts,
+	follower_user.user_num_followers,
+	follower_user.user_num_following,
+	ROUND ( 
+		( ABS(follower_user.user_num_followers - ig_'.$user_id.'_avgs.followers) + ABS(follower_user.user_num_following - ig_'.$user_id.'_avgs.following) ) *
+		( (follower_user.user_num_followers + follower_user.user_num_following)/(ig_'.$user_id.'_avgs.followers + ig_'.$user_id.'_avgs.following) ) *
+		( follower_user.user_num_followers/follower_user.user_num_following ) *
+		( follower_user.user_num_posts/ig_'.$user_id.'_avgs.posts )
+	) AS follow_rating
+	FROM ig_users AS follower_user, (
+	SELECT ROUND(AVG(user_num_posts)) AS posts, ROUND(AVG(user_num_followers)) AS followers, ROUND(AVG(user_num_following)) AS following
+		FROM ig_users
+		WHERE user_id IN 
+			(SELECT ig_follows.user_id 
+			FROM ig_follows 
+			WHERE ig_follows.follows_user_id = "'.$user_id.'")
+	) AS ig_'.$user_id.'_avgs 
+	WHERE follower_user.user_id NOT IN (
+		SELECT user_id 
+		FROM ig_follows 
+		WHERE follows_user_id = "'.$user_id.'"
+		UNION
+		SELECT user_id FROM ig_botaction_follow
+		UNION
+		SELECT user_id FROM ig_deleted_users
+	) 
+	AND follower_user.user_num_followers < follower_user.user_num_following
+	AND follower_user.user_num_following < 2000
+	AND follower_user.user_num_followers < 2000
+	AND follower_user.user_num_following > 150
+	AND follower_user.user_num_followers > 100
+	AND follower_user.user_num_posts >= '.$min_posts.'
+	ORDER BY follow_rating 
+	LIMIT 0,'.$limit.') as t1;';
 
-	$sql .= "SELECT DISTINCT `ig_users`.`user_id` ";
-	$sql .= "FROM `ig_users`, `ig_user_tag_interest` ";
-	$sql .= "WHERE `user_num_followers` <= 800 ";
-	$sql .= "AND `user_num_following` <= 800 ";
-	$sql .= "AND `user_num_followers` <= 100 + `user_num_following` ";
-	$sql .= "AND `user_num_following` <= 200 + `user_num_followers` ";
-	$sql .= "AND `user_num_followers` >= 150 ";
-	$sql .= "AND `user_num_following` >= 200 ";
-	$sql .= "AND `ig_users`.`user_id` == `ig_user_tag_interest`.`user_id` ";
-	$sql .= "AND `ig_user_tag_interest`.`tag_name` == '".$tag_name."' ";
-	$sql .= "AND `ig_users`.`user_id` NOT IN ";
-	$sql .= "(SELECT `user_id` FROM `ig_follows` WHERE `follows_user_id` == '".$user_id."' OR `user_id` == '".$user_id."')";
-	$sql .= "ORDER BY `user_num_followers` ASC";
+	jr( sql_get_query( $sql ) );
+}
 
-	if( isset( $_POST["tag_name"] ) ){
-		$sql .= ") ";
-	}
+else if( isset( $_POST["user_id"] ) && isset( $_POST["limit"] ) ){
 
-	$sql .= "LIMIT 0,".$num_follows.";";
-	
+	$user_id = $_POST["user_id"];
+	$limit = $_POST["limit"];
+
+	$sql = 'SELECT follower_user_id as user_id
+FROM (SELECT follower_user.user_id AS follower_user_id,
+	follower_user.user_num_posts,
+	follower_user.user_num_followers,
+	follower_user.user_num_following,
+	ROUND ( 
+		( ABS(follower_user.user_num_followers - ig_'.$user_id.'_avgs.followers) + ABS(follower_user.user_num_following - ig_'.$user_id.'_avgs.following) ) *
+		( (follower_user.user_num_followers + follower_user.user_num_following)/(ig_'.$user_id.'_avgs.followers + ig_'.$user_id.'_avgs.following) ) *
+		( follower_user.user_num_followers/follower_user.user_num_following ) *
+		( follower_user.user_num_posts/ig_'.$user_id.'_avgs.posts )
+	) AS follow_rating
+	FROM ig_users AS follower_user, (
+	SELECT ROUND(AVG(user_num_posts)) AS posts, ROUND(AVG(user_num_followers)) AS followers, ROUND(AVG(user_num_following)) AS following
+		FROM ig_users
+		WHERE user_id IN 
+			(SELECT ig_follows.user_id 
+			FROM ig_follows 
+			WHERE ig_follows.follows_user_id = "'.$user_id.'")
+	) AS ig_'.$user_id.'_avgs 
+	WHERE follower_user.user_id NOT IN (
+		SELECT user_id 
+		FROM ig_follows 
+		WHERE follows_user_id = "'.$user_id.'"
+		UNION
+		SELECT user_id FROM ig_botaction_follow
+		UNION
+		SELECT user_id FROM ig_deleted_users
+	) 
+	AND follower_user.user_num_followers < follower_user.user_num_following
+	AND follower_user.user_num_following < 2000
+	AND follower_user.user_num_followers < 2000
+	AND follower_user.user_num_following > 150
+	AND follower_user.user_num_followers > 100
+	AND follower_user.user_num_posts > 0
+	ORDER BY follow_rating 
+	LIMIT 0,'.$limit.') as t1;';
+
+	jr( sql_get_query( $sql ) );
+}
+else if( isset( $_POST["user_id"] ) ){
+
+	$user_id = $_POST["user_id"];
+
+	$sql = 'SELECT follower_user_id as user_id
+FROM (SELECT follower_user.user_id AS follower_user_id,
+	follower_user.user_num_posts,
+	follower_user.user_num_followers,
+	follower_user.user_num_following,
+	ROUND ( 
+		( ABS(follower_user.user_num_followers - ig_'.$user_id.'_avgs.followers) + ABS(follower_user.user_num_following - ig_'.$user_id.'_avgs.following) ) *
+		( (follower_user.user_num_followers + follower_user.user_num_following)/(ig_'.$user_id.'_avgs.followers + ig_'.$user_id.'_avgs.following) ) *
+		( follower_user.user_num_followers/follower_user.user_num_following ) *
+		( follower_user.user_num_posts/ig_'.$user_id.'_avgs.posts )
+	) AS follow_rating
+	FROM ig_users AS follower_user, (
+	SELECT ROUND(AVG(user_num_posts)) AS posts, ROUND(AVG(user_num_followers)) AS followers, ROUND(AVG(user_num_following)) AS following
+		FROM ig_users
+		WHERE user_id IN 
+			(SELECT ig_follows.user_id 
+			FROM ig_follows 
+			WHERE ig_follows.follows_user_id = "'.$user_id.'")
+	) AS ig_'.$user_id.'_avgs 
+	WHERE follower_user.user_id NOT IN (
+		SELECT user_id 
+		FROM ig_follows 
+		WHERE follows_user_id = "'.$user_id.'"
+		UNION
+		SELECT user_id FROM ig_botaction_follow
+		UNION
+		SELECT user_id FROM ig_deleted_users
+	) 
+	AND follower_user.user_num_followers < follower_user.user_num_following
+	AND follower_user.user_num_following < 2000
+	AND follower_user.user_num_followers < 2000
+	AND follower_user.user_num_following > 150
+	AND follower_user.user_num_followers > 100
+	AND follower_user.user_num_posts > 0
+	ORDER BY follow_rating 
+	LIMIT 0,2000) as t1;';
+
 	jr( sql_get_query( $sql ) );
 }
 else
-	jr("Missing user_id, tag_name and/or num_follows params.");
+	jr("Missing user_id param.");
+
+
+
+/*
+CREATE TEMPORARY TABLE IF NOT EXISTS ig_$user_id_avgs AS (
+	SELECT ROUND(AVG(user_num_posts)) AS posts, ROUND(AVG(user_num_followers)) AS followers, ROUND(AVG(user_num_following)) AS following
+		FROM ig_users
+		WHERE user_id IN 
+			(SELECT ig_follows.user_id 
+			FROM ig_follows 
+			WHERE ig_follows.follows_user_id = "$user_id")
+);
+
+SELECT follower_user.user_id AS follower_user_id,
+follower_user.user_num_posts,
+follower_user.user_num_followers,
+follower_user.user_num_following,
+ROUND ( 
+	( ABS(follower_user.user_num_followers - ig_$user_id_avgs.followers) + ABS(follower_user.user_num_following - ig_$user_id_avgs.following) ) *
+	( (follower_user.user_num_followers + follower_user.user_num_following)/(ig_$user_id_avgs.followers + ig_$user_id_avgs.following) ) *
+	( follower_user.user_num_followers/follower_user.user_num_following ) *
+	( follower_user.user_num_posts/ig_$user_id_avgs.posts )
+) AS follow_rating
+FROM ig_users AS follower_user, ig_$user_id_avgs 
+WHERE follower_user.user_id NOT IN (
+	SELECT user_id 
+	FROM ig_follows 
+	WHERE follows_user_id = "$user_id"
+) 
+AND follower_user.user_num_followers < follower_user.user_num_following
+AND follower_user.user_num_following < 2000
+AND follower_user.user_num_followers < 2000
+AND follower_user.user_num_following > 150
+AND follower_user.user_num_followers > 100
+AND follower_user.user_num_posts > 0
+ORDER BY follow_rating;
+*/
+
 ?>
+
