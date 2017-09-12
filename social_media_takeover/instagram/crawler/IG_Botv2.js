@@ -29,7 +29,12 @@
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var localData;
+
 var MAX_USER_SCRAPE = 2750;
+var MAX_FOLLOWS = 150;
+var MAX_UNFOLLOWS = 150;
+var MAX_LIKES = 300;
+
 // TODO: Fine tune wait times
 var WAIT_ON_PAGE_TIME = 3000;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
@@ -56,14 +61,17 @@ function main() {
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
     
+    if (localData.operation.flags.likeFollowUsers)
+        followLoop();
 
     // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
     // switch to passive tasks to run in down time.
-    console.log("Running passive tasks loop.");
-    passiveTasksLoop();
+        console.log("Running passive tasks loop.");
+    if (localData.operation.flags.passiveTasks)
+        passiveTasksLoop();
 }
 
-main();
+// main();
 
 
 /***********************************************
@@ -98,11 +106,15 @@ function clearDailyTotals() {
 
     // main function flags
     localData.operation.flags.likeFollowUsers = 0;
-    localData.operation.flags.passiveTags = 0;
+    localData.operation.flags.passiveTasks = 0;
 
     // indexes for follow/unfollow. Arrays will be populated at once in a single set
+    localData.operation.lists.followList = [];
     localData.operation.lists.followListIndex = 0;
+    localData.operation.lists.unfollowList = [];
     localData.operation.lists.unfollowListIndex = 0;
+    localData.operation.lists.autoLikeList = []
+    localData.operation.lists.autoLikeListIndex = 0;
 
     // reset daily counters
     localData.operation.counters.dailyLikes = 0;
@@ -308,9 +320,51 @@ function savePotentialFollows() {
 }
 
 function buildLikeFollowList() {
+
+    var finishedTasks = 0;
+
     // grabs list of potential users to follow from the db
+    followGetAutoFollow(MAX_FOLLOWS, 20, function (response) {
+        // success
+        localData.operation.lists.followList = response;
+        localData.operation.lists.followListIndex = 0;
+
+        // finished a task
+        // check for move on
+        finishedTasks++;
+        if (finishedTasks >= 3)
+            finishedRunningDailyTasks();
+
+    }, buildLikeFollowList);
+
+    // TODO
+    // get unfollow list
 
     // grab a 100-200 recent posts per tag
+    var posts = [];
+    var responses = 0;
+    var tags = localData.user.tagInterests;
+
+    for (var i = 0; i < tags.length; i++) {
+        getTagPage(tags[i], Math.ceil(MAX_LIKES/tags.length), function (response) {
+            // success
+            responses++;
+            localData.operation.lists.autoLikeList.concat(response);
+            if (responses == tags.length) {
+                // TODO: Filter posts here before moving on
+
+                // finished a task
+                // check for move on
+                finishedTasks++;
+                if (finishedTasks >= 3)
+                    finishedRunningDailyTasks();
+            }
+        }, function () {
+            // error
+            responses++;
+        });
+    }
+
     // filter posts by has more than 50 likes
     // query the follow base of the user. Compare to follow base average to see if they are a reasonable mark
     // /p/asdf/?__a=1 for the post and get the author username
@@ -331,6 +385,11 @@ function finishedRunningDailyTasks() {
     // reload page to start liking/following/unfollow tasks
     // location.reload();
     alert("done");
+}
+
+function followLoop() {
+    // we should already have follow and unfollow list built up at this point
+    // TODO: Build like list to like posts.
 }
 
 function passiveTasksLoop() {
@@ -643,7 +702,7 @@ function getLocalData() {
         data.operation = {};
         data.operation.flags = {};
         data.operation.flags.likeFollowUsers = 0;
-        data.operation.flags.passiveTags = 0;
+        data.operation.flags.passiveTasks = 0;
 
         data.operation.lists = {};
         data.operation.lists.errorLog = [];
@@ -653,6 +712,8 @@ function getLocalData() {
         data.operation.lists.followListIndex = 0;
         data.operation.lists.unfollowList = [];
         data.operation.lists.unfollowListIndex = 0;
+        data.operation.lists.autoLikeList = [];
+        data.operation.lists.autoLikeListIndex = 0;
 
         data.operation.counters = {};
         data.operation.counters.dailyLikes = 0;
@@ -870,32 +931,6 @@ function deletedUserSet(username) {
     });
 }
 
-function usersToFollowGet(limit, minimumPostsFromUsers, success, error) {
-    if (typeof success != 'function')
-        success = function () { };
-    if (typeof error != 'function')
-        error = function () { };
-
-    jQuery.post({
-        url: api_url + "/user/set/deleted.php",
-        data: {
-            user_id: localData.user.username,
-            limit: limit,
-            min_posts: minimumPostsFromUsers
-        },
-        success: function (result) {
-            result = JSON.parse(result);
-            if (result)
-                success(result);
-            else
-                error();
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
-        }
-    });
-}
-
 function userMassSet(users, success, error) {
     if (typeof success != 'function')
         success = function () { };
@@ -1035,7 +1070,7 @@ function followBaseSet(user, followBase, success, error) {
     });
 }
 
-function followGetAutoFollow(user, limit, success, error) {
+function followGetAutoFollow(limit, minimumPostsFromUsers, success, error) {
     if (typeof success != 'function')
         success = function () { };
     if (typeof error != 'function')
@@ -1044,8 +1079,9 @@ function followGetAutoFollow(user, limit, success, error) {
     jQuery.post({
         url: api_url + "/follows/get/auto_follows.php",
         data: {
-            user_id: user,
-            num_follows: limit
+            user_id: localData.user.username,
+            limit: limit,
+            min_posts: minimumPostsFromUsers
         },
         success: function (result) {
             result = JSON.parse(result);
@@ -1056,7 +1092,6 @@ function followGetAutoFollow(user, limit, success, error) {
         },
         error: function (jqXHR, textStatus, errorThrown) {
             logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
-            error();
         }
     });
 }
