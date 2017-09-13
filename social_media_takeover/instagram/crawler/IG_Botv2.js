@@ -63,16 +63,16 @@ function main() {
     
     if (localData.operation.flags.likeFollowUsers)
         followLoop();
+    else {
+        alert("At Passive Tasks.");
+        // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
+        // switch to passive tasks to run in down time.
+        // passiveTasksLoop();
+    }
 
-    // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
-    // switch to passive tasks to run in down time.
-    console.log("Running passive tasks loop.");
-
-    if (localData.operation.flags.passiveTasks)
-        alert("At Passive Tasks."); // passiveTasksLoop();
 }
 
-main();
+//main();
 
 
 /***********************************************
@@ -142,10 +142,6 @@ function checkAndRunDailyTasks() {
 }
 
 function clearDailyTotals() {
-
-    // main function flags
-    localData.operation.flags.likeFollowUsers = 0;
-    localData.operation.flags.passiveTasks = 0;
 
     // indexes for follow/unfollow. Arrays will be populated at once in a single set
     localData.operation.lists.followList = [];
@@ -465,7 +461,7 @@ function followLoop() {
     var autoLikeList = localData.operation.lists.autoLikeList;
     var autoLikeIndex = localData.operation.lists.autoLikeListIndex;
 
-    if (localData.operation.counters.dailyTaskCounter % 3 == 0 && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
+    if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
         // unfollow or follow a user
         if (followIndex > unfollowIndex) {
             // unfollow
@@ -479,7 +475,9 @@ function followLoop() {
             }
             else {
                 var unfollowBtn = getElementsLikeHtml("button", "Following")[0];
-                unfollowBtn.click();
+                
+                if(typeof unfollowBtn != "undefined")
+                    unfollowBtn.click();
 
                 // update database
                 botActionUnfollowSet(localData.user.username, user, function () {
@@ -512,7 +510,9 @@ function followLoop() {
             }
             else {
                 var followBtn = getElementsLikeHtml("button", "Follow")[0];
-                followBtn.click();
+
+                if(typeof followBtn != "undefined")
+                    followBtn.click();
 
                 // update database
                 botActionFollowSet(localData.user.username, user, function () {
@@ -546,7 +546,10 @@ function followLoop() {
         }
         else {
             // on the page. like the post and log everything
-            getElementsByHtml("span", "Like")[0].click();
+            var likeBtn = getElementsByHtml("span", "Like")[0];
+
+            if(typeof likeBtn != "undefined")
+                likeBtn.click();
 
             botActionLikeSet(localData.user.username, post.shortcode, function () {
                     console.log("Tracked like in DB.");
@@ -570,7 +573,6 @@ function followLoop() {
     }
     else {
         localData.operation.flags.likeFollowUsers = 0;
-        localData.operation.flags.passiveTasks = 1;
         saveLocalData(localData);
     }
 }
@@ -885,7 +887,6 @@ function getLocalData() {
         data.operation = {};
         data.operation.flags = {};
         data.operation.flags.likeFollowUsers = 0;
-        data.operation.flags.passiveTasks = 0;
 
         data.operation.lists = {};
         data.operation.lists.errorLog = [];
