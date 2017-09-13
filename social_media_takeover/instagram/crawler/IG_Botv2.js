@@ -127,8 +127,9 @@ function checkAndRunDailyTasks() {
 
     // get current time
     var curTime = new Date();
+    var lastTime = new Date(localData.operation.dailyTimer);
     // if it has been less than a day since the last daily timer, then skip everything else
-    if (curTime - localData.operation.dailyTimer < MILLISECONDS_IN_A_DAY)
+    if (curTime - lastTime < MILLISECONDS_IN_A_DAY)
         return false;
 
     clearDailyTotals();
@@ -443,7 +444,7 @@ function buildLikeFollowList() {
 
 function finishedRunningDailyTasks() {
     // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
-    localData.operation.dailyTimer += MILLISECONDS_IN_A_DAY;
+    localData.operation.dailyTimer = new Date();
     // TODO: Get list of users to follow/like
     localData.operation.flags.likeFollowUsers = 1;
 
