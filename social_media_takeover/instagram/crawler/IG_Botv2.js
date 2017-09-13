@@ -31,12 +31,12 @@ var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var localData;
 
 var MAX_USER_SCRAPE = 2750;
-var MAX_FOLLOWS = 150;
-var MAX_UNFOLLOWS = 150;
+var MAX_FOLLOWS = 75;
+var MAX_UNFOLLOWS = 75;
 var MAX_LIKES = 300;
 
 // TODO: Fine tune wait times
-var WAIT_ON_PAGE_TIME = 3000;
+var WAIT_ON_PAGE_TIME = 1000 * 60;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MAX_GET_POSTS = 100;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
@@ -66,9 +66,10 @@ function main() {
 
     // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
     // switch to passive tasks to run in down time.
-        console.log("Running passive tasks loop.");
+    console.log("Running passive tasks loop.");
+
     if (localData.operation.flags.passiveTasks)
-        passiveTasksLoop();
+        alert("At Passive Tasks."); // passiveTasksLoop();
 }
 
 // main();
@@ -83,8 +84,9 @@ function main() {
 ************************************************/
 
 function passiveTasks(){
-    var threeHours = 1000*60*60*3;
-    populateUsersLoop(threeHours);
+    var threeHours = 1000 * 60 * 60 * 3;
+    // TODO
+    // populateUsersLoop(threeHours);
 }
 
 function populateUsersLoop(runTime){
@@ -153,8 +155,6 @@ function clearDailyTotals() {
     localData.operation.lists.autoLikeListIndex = 0;
 
     // reset daily counters
-    localData.operation.counters.dailyLikes = 0;
-    localData.operation.counters.dailyFollows = 0;
     localData.operation.counters.dailyTaskCounter = 0;
 
     // reset lists that are built with .push()
@@ -366,7 +366,13 @@ function buildLikeFollowList() {
     // grabs list of potential users to follow from the db
     followGetAutoFollow(MAX_FOLLOWS, 20, function (response) {
         // success
-        localData.operation.lists.followList = response;
+
+        // format response correctly
+        var formArr = [];
+        for(var i = 0; i < response.length; i++)
+            formArr.push(response[i].user_id);
+
+        localData.operation.lists.followList = formArr;
         localData.operation.lists.followListIndex = 0;
 
         // finished a task
@@ -383,7 +389,12 @@ function buildLikeFollowList() {
     followGetAutoUnfollow(localData.user.username, MAX_FOLLOWS, function (response) {
         // success
 
-        localData.operation.lists.unfollowList = response;
+        // format response correctly
+        var formArr = [];
+        for(var i = 0; i < response.length; i++)
+            formArr.push(response[i].follows_user_id);
+
+        localData.operation.lists.unfollowList = formArr;
         localData.operation.lists.unfollowListIndex = 0;
 
         // finished a task
@@ -444,8 +455,124 @@ function finishedRunningDailyTasks() {
 }
 
 function followLoop() {
-    // we should already have follow and unfollow list built up at this point
-    // TODO: Build like list to like posts.
+    // we have follow, unfollow and likeable posts lists build
+    var followList = localData.operation.lists.followList;
+    var followIndex = localData.operation.lists.followListIndex;
+
+    var unfollowList = localData.operation.lists.unfollowList;
+    var unfollowIndex = localData.operation.lists.unfollowListIndex;
+    
+    var autoLikeList = localData.operation.lists.autoLikeList;
+    var autoLikeIndex = localData.operation.lists.autoLikeListIndex;
+
+    if (localData.operation.counters.dailyTaskCounter % 3 == 0 && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
+        // unfollow or follow a user
+        if (followIndex > unfollowIndex) {
+            // unfollow
+            var user = unfollowList[unfollowIndex];
+            var url = "https://www.instagram.com/" + user + "/";
+
+            if (location.href != url) {
+                saveLocalData(localData);
+                location.href = url;
+                return false;
+            }
+            else {
+                var unfollowBtn = getElementsLikeHtml("button", "Following")[0];
+                unfollowBtn.click();
+
+                // update database
+                botActionUnfollowSet(localData.user.username, user, function () {
+                    console.log("Unfollow tracked in DB.");
+                }, function () {
+                    logEvent(1, "botActionUnfollowSet: Failed to send unfollow to database. user: " + localData.user.username + " unfollows: " + user, function () { });
+                })
+
+                // update counters
+                localData.operation.lists.unfollowListIndex++;
+                localData.operation.counters.dailyTaskCounter++;
+                saveLocalData(localData);
+
+                // skip to auto like, you are likely going to that page next anyway
+                setTimeout(function () {
+                    saveLocalData(localData);
+                    location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+                }, WAIT_ON_PAGE_TIME);
+            }
+        }
+        else {
+            // follow
+            var user = followList[followIndex];
+            var url = "https://www.instagram.com/" + user + "/";
+
+            if (location.href != url) {
+                saveLocalData(localData);
+                location.href = url;
+                return false;
+            }
+            else {
+                var followBtn = getElementsLikeHtml("button", "Follow")[0];
+                followBtn.click();
+
+                // update database
+                botActionFollowSet(localData.user.username, user, function () {
+                    console.log("Follow tracked in DB.");
+                }, function () {
+                    logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
+                })
+
+                // update counters
+                localData.operation.lists.followListIndex++;
+                localData.operation.counters.dailyTaskCounter++;
+                saveLocalData(localData);
+
+                // skip to auto like, you are likely going to that page next anyway
+                setTimeout(function () {
+                    saveLocalData(localData);
+                    location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+                }, WAIT_ON_PAGE_TIME);
+            }
+        }
+    }
+    else if (autoLikeIndex < autoLikeList.length) {
+        // like post
+        var post = autoLikeList[autoLikeIndex];
+        var url = "https://www.instagram.com/p/" + post.shortcode + "/";
+
+        if (location.href != url) {
+            saveLocalData(localData);
+            location.href = url;
+            return false;
+        }
+        else {
+            // on the page. like the post and log everything
+            getElementsByHtml("span", "Like")[0].click();
+
+            botActionLikeSet(localData.user.username, post.shortcode, function () {
+                    console.log("Tracked like in DB.");
+                }, function () {
+                    logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
+            });
+
+            // update counters and index
+            localData.operation.lists.autoLikeListIndex++;
+            localData.operation.counters.dailyTaskCounter++;
+            saveLocalData(localData);
+
+            // skip to next auto like, you are likely going to that page next anyway
+            setTimeout(function () {
+                saveLocalData(localData);
+                location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
+            }, WAIT_ON_PAGE_TIME);
+
+            return false;
+        }
+    }
+    else {
+        localData.operation.flags.likeFollowUsers = 0;
+        localData.operation.flags.passiveTasks = 1;
+        saveLocalData(localData);
+    }
 }
 
 function passiveTasksLoop() {
@@ -844,10 +971,36 @@ function botActionFollowSet(user, follows, success, error) {
         error = function () { };
 
     jQuery.post({
-        url: api_url + "/botaction_follows/set/",
+        url: api_url + "/botaction_follows/set/follow.php",
         data: {
             user_id: user,
             follows_user_id: follows
+        },
+        success: function (result) {
+            result = JSON.parse(result);
+            if (result)
+                success();
+            else
+                error();
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
+
+function botActionUnfollowSet(user, unfollows, success, error) {
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
+    jQuery.post({
+        url: api_url + "/botaction_follows/set/unfollow.php",
+        data: {
+            user_id: user,
+            unfollows_user_id: follows
         },
         success: function (result) {
             result = JSON.parse(result);
@@ -897,7 +1050,7 @@ function botActionLikeSet(user, post, success, error) {
         url: api_url + "/botaction_like/set/",
         data: {
             user_id: user,
-            post_id: follows
+            post_id: post
         },
         success: function (result) {
             result = JSON.parse(result);
