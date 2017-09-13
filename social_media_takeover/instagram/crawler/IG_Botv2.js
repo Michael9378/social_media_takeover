@@ -72,7 +72,7 @@ function main() {
         alert("At Passive Tasks."); // passiveTasksLoop();
 }
 
-// main();
+main();
 
 
 /***********************************************
@@ -450,8 +450,7 @@ function finishedRunningDailyTasks() {
     // save local data before task reload
     saveLocalData(localData);
     // reload page to start liking/following/unfollow tasks
-    // location.reload();
-    alert("done");
+    location.reload();
 }
 
 function followLoop() {
