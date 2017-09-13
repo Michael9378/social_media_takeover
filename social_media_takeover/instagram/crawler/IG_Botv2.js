@@ -36,7 +36,7 @@ var MAX_UNFOLLOWS = 75;
 var MAX_LIKES = 300;
 
 // TODO: Fine tune wait times
-var WAIT_ON_PAGE_TIME = 1000 * 60;
+var WAIT_ON_PAGE_TIME = 1000 * 45;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MAX_GET_POSTS = 100;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
@@ -72,7 +72,7 @@ function main() {
 
 }
 
-//main();
+main();
 
 
 /***********************************************
@@ -461,6 +461,10 @@ function followLoop() {
     var autoLikeList = localData.operation.lists.autoLikeList;
     var autoLikeIndex = localData.operation.lists.autoLikeListIndex;
 
+    // wait on page time is the standard
+    // introduce randomness of +/- 15 seconds around this standard
+    var pageWaitRand = Math.ceil(Math.random()*30) + WAIT_ON_PAGE_TIME - 15;
+
     if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
         // unfollow or follow a user
         if (followIndex > unfollowIndex) {
@@ -495,7 +499,7 @@ function followLoop() {
                 setTimeout(function () {
                     saveLocalData(localData);
                     location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
-                }, WAIT_ON_PAGE_TIME);
+                }, pageWaitRand);
             }
         }
         else {
@@ -530,7 +534,7 @@ function followLoop() {
                 setTimeout(function () {
                     saveLocalData(localData);
                     location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
-                }, WAIT_ON_PAGE_TIME);
+                }, pageWaitRand);
             }
         }
     }
@@ -563,10 +567,14 @@ function followLoop() {
             saveLocalData(localData);
 
             // skip to next auto like, you are likely going to that page next anyway
+            // unless we are out of likes, then skip to follow as a guess
             setTimeout(function () {
                 saveLocalData(localData);
-                location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
-            }, WAIT_ON_PAGE_TIME);
+                if(autoLikeIndex + 1 < autoLikeList.length)
+                    location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
+                else 
+                    location.href = "https://www.instagram.com/" + followList[followIndex] + "/";
+            }, pageWaitRand);
 
             return false;
         }
@@ -1001,7 +1009,7 @@ function botActionUnfollowSet(user, unfollows, success, error) {
         url: api_url + "/botaction_follows/set/unfollow.php",
         data: {
             user_id: user,
-            unfollows_user_id: follows
+            unfollows_user_id: unfollows
         },
         success: function (result) {
             result = JSON.parse(result);
