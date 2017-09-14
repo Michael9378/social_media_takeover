@@ -71,8 +71,8 @@ function main() {
         // wait 30 minutes before we check for daily tasks again
         setTimeout(function () {
             // go to a random page to make sure we aren't triggering the stuck on page check
-            var randomIndex = Math.floor( localData.operation.lists.followList.length * Math.random() );
-            location.href = "https://www.instagram.com/dirtkingdom/" + localData.operation.lists.followList[randomIndex];
+            var randomInt = Math.floor(100 * Math.random());
+            location.href = "https://www.instagram.com/" + randomInt;
         }, 1000 * 60 * 30);
         // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
         // switch to passive tasks to run in down time.
