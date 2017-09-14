@@ -28,18 +28,20 @@
 // Global variables
 
 var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
+var curTime = new Date();
 var localData;
 
 var MAX_USER_SCRAPE = 2750;
-var MAX_FOLLOWS = 75;
-var MAX_UNFOLLOWS = 75;
-var MAX_LIKES = 300;
+var MAX_FOLLOWS = 125;
+var MAX_UNFOLLOWS = 125;
+var MAX_LIKES = 500;
 
 // TODO: Fine tune wait times
 var WAIT_ON_PAGE_TIME = 1000 * 45;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
-var MAX_GET_POSTS = 100;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
+
+main();
 
 // main function for bot to run
 function main() {
@@ -64,16 +66,20 @@ function main() {
     if (localData.operation.flags.likeFollowUsers)
         followLoop();
     else {
-        alert("At Passive Tasks.");
+        console.log("At Passive Tasks.");
+        console.log("Waiting 30 minutes to reload page and check for start time.");
+        // wait 30 minutes before we check for daily tasks again
+        setTimeout(function () {
+            // go to a random page to make sure we aren't triggering the stuck on page check
+            var randomIndex = Math.floor( localData.operation.lists.followList.length * Math.random() );
+            location.href = "https://www.instagram.com/dirtkingdom/" + localData.operation.lists.followList[randomIndex];
+        }, 1000 * 60 * 30);
         // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
         // switch to passive tasks to run in down time.
         // passiveTasksLoop();
     }
 
 }
-
-main();
-
 
 /***********************************************
 ***************** Bot Functions ****************
@@ -126,11 +132,17 @@ function checkAndRunDailyTasks() {
     // TODO MAKE SURE YOU SAVE LOCAL DATA BEFORE RELOADING!!!
 
     // get current time
-    var curTime = new Date();
     var lastTime = new Date(localData.operation.dailyTimer);
     // if it has been less than a day since the last daily timer, then skip everything else
     if (curTime - lastTime < MILLISECONDS_IN_A_DAY)
         return false;
+
+    // if we aren't in our time window to start daily tasks, return false;
+    // first operation takes about 1.25 hours so start 1 hour early.
+    var startTime = localData.user.likeFollowStartTime;
+    if (!(curTime.getHours() > startTime - 1 && curTime < startTime + 2))
+        return false;
+
 
     clearDailyTotals();
     // saveCurUserInfo will cascade the rest of the daily tasks
@@ -191,7 +203,7 @@ function saveTagPages() {
     var tags = localData.user.tagInterests;
     var responses = 0;
     for (var i = 0; i < tags.length; i++) {
-        getTagPage(tags[i], MAX_GET_POSTS, function (response) {
+        getTagPage(tags[i], 20, function (response) {
             // success
             responses++;
             response = response.data.hashtag;
@@ -439,11 +451,10 @@ function buildLikeFollowList() {
 }
 
 function finishedRunningDailyTasks() {
-    // when we are all done with daily tasks, update the dailyTimer and flip daily task flag to false for tomorrow to handle
-    localData.operation.dailyTimer = new Date();
-    // TODO: Get list of users to follow/like
+    // set daily timer so we dont hop back into daily check on page reload.
+    localData.operation.dailyTimer = curTime;
+    // set for following and liking
     localData.operation.flags.likeFollowUsers = 1;
-
     // save local data before task reload
     saveLocalData(localData);
     // reload page to start liking/following/unfollow tasks
@@ -891,6 +902,7 @@ function getLocalData() {
         data.user.igObj = {};
         data.user.username = "dirtkingdom";
         data.user.tagInterests = ["motocross", "braap", "dirtbike"];
+        data.user.likeFollowStartTime = 9;
 
         data.operation = {};
         data.operation.flags = {};
