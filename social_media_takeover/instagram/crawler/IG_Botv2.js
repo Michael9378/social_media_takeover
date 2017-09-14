@@ -77,12 +77,13 @@ function main() {
         if (curHour < localData.user.likeFollowStartTime - 1)
             waitHours = localData.user.likeFollowStartTime - curHour;
 
+        console.log("Hours to wait: " + waitHours);
         // wait 30 minutes before we check for daily tasks again
         setTimeout(function () {
             // go to a random page to make sure we aren't triggering the stuck on page check
             var randomInt = Math.floor(100 * Math.random());
             location.href = "https://www.instagram.com/" + randomInt;
-        }, waitHours);
+        }, Math.ceil(waitHours * 60 * 60 * 1000));
         // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
         // switch to passive tasks to run in down time.
         // passiveTasksLoop();
