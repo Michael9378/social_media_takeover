@@ -67,13 +67,22 @@ function main() {
         followLoop();
     else {
         console.log("At Passive Tasks.");
-        console.log("Waiting 30 minutes to reload page and check for start time.");
+
+        // figure out how long we have to wait
+        var curHour = curTime.getHours() + curTime.getMinutes() / 60;
+        var waitHours = 0.5;
+
+        if (curHour > localData.user.likeFollowStartTime + 2)
+            waitHours = 24 - curHour + localData.user.likeFollowStartTime;
+        if (curHour < localData.user.likeFollowStartTime - 1)
+            waitHours = localData.user.likeFollowStartTime - curHour;
+
         // wait 30 minutes before we check for daily tasks again
         setTimeout(function () {
             // go to a random page to make sure we aren't triggering the stuck on page check
             var randomInt = Math.floor(100 * Math.random());
             location.href = "https://www.instagram.com/" + randomInt;
-        }, 1000 * 60 * 30);
+        }, waitHours);
         // if we have exhausted all our likes and follows, run passive tasks until tomorrow where it all starts again.
         // switch to passive tasks to run in down time.
         // passiveTasksLoop();
