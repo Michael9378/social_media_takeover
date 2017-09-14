@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS ig_botaction_follow;
 DROP TABLE IF EXISTS ig_botaction_like;
 DROP TABLE IF EXISTS ig_log;
 DROP TABLE IF EXISTS ig_deleted_users;
+DROP TABLE IF EXISTS ig_user_historical;
 
 CREATE TABLE ig_users
 (
@@ -139,4 +140,14 @@ CREATE TABLE ig_deleted_users
 (
 	user_id VARCHAR(35),
 	PRIMARY KEY (user_id)
+);
+
+CREATE TABLE ig_user_historical
+(
+	user_id VARCHAR(35),
+	user_num_posts INT,
+	user_num_followers INT,
+	user_num_following INT,
+	day DATE,
+	PRIMARY KEY (user_id, day)
 );

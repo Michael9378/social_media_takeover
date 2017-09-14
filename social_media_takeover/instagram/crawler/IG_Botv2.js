@@ -185,9 +185,14 @@ function saveCurUserInfo() {
         // save locally for safety
         saveLocalData(localData);
         // send to database
-        userMassSet([response], null, function () {
+        userMassSet([response], function () { }, function () {
             logEvent(2, "saveCurUserInfo: couldnt save cur user to database.", null);
         });
+
+        // set todays stats in db
+        historicalSet(localData.user.username, response.followed_by.count, response.follows.count, response.media.count, function () { }, function () {
+            logEvent(2, "historicalSet: couldnt save cur user to database.", null);
+        })
 
         // call to get tag page info
         saveTagPages();
@@ -1209,6 +1214,34 @@ function userGet(user, success, error) {
         }
     });
 }
+
+function historicalSet(user, followers, following, numPosts, success, error) {
+        if (typeof success != 'function')
+            success = function () { };
+        if (typeof error != 'function')
+            error = function () { };
+
+        jQuery.post({
+            url: api_url + "/user/set/snapshot.php",
+            data: {
+                user_name: user,
+                user_num_followers: followers,
+                user_num_following: following,
+                user_num_posts: numPosts
+            },
+            success: function (result) {
+                result = JSON.parse(result);
+                if (result)
+                    success();
+                else
+                    error();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+                error();
+            }
+        });
+    }
 
 function userGetMissing(tagInterests, limit, success, error) {
     if (typeof success != 'function')
