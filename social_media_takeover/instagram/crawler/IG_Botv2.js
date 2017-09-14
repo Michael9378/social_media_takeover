@@ -150,9 +150,10 @@ function checkAndRunDailyTasks() {
     // if we aren't in our time window to start daily tasks, return false;
     // first operation takes about 1.25 hours so start 1 hour early.
     var startTime = localData.user.likeFollowStartTime;
-    if (!(curTime.getHours() > startTime - 1 && curTime < startTime + 2))
+    if (!(curTime.getHours() >= startTime - 1 && curTime.getHours() <= startTime + 2)) {
+        console.log("Failed time window check");
         return false;
-
+    }
 
     clearDailyTotals();
     // saveCurUserInfo will cascade the rest of the daily tasks
