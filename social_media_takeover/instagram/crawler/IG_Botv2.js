@@ -554,7 +554,7 @@ function followLoop() {
 
         if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
             // unfollow or follow a user
-            if (followIndex > unfollowIndex) {
+            if (followIndex > unfollowIndex && unfollowIndex < unfollowList.length) {
                 // unfollow
                 var user = unfollowList[unfollowIndex];
                 var url = "https://www.instagram.com/" + user + "/";
