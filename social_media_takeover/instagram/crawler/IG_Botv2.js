@@ -73,9 +73,9 @@ function main() {
         var waitHours = 0.5;
 
         if (curHour > localData.user.likeFollowStartTime + 2)
-            waitHours = 24 - curHour + localData.user.likeFollowStartTime;
+            waitHours = 24 - curHour + localData.user.likeFollowStartTime - 1;
         if (curHour < localData.user.likeFollowStartTime - 1)
-            waitHours = localData.user.likeFollowStartTime - curHour;
+            waitHours = localData.user.likeFollowStartTime - curHour - 1;
 
         console.log("Hours to wait: " + waitHours);
         // wait 30 minutes before we check for daily tasks again
@@ -222,8 +222,6 @@ function saveCurUserInfo() {
                 var followBase = {};
                 followBase.followers = followers;
                 followBase.following = following;
-
-                console.log(followBase);
 
                 followBaseSet(localData.user.username, followBase, function () {
                     console.log("Saved follow base for cur user to db.");
