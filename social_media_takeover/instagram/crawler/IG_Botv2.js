@@ -552,21 +552,21 @@ function followLoop() {
 
     // wait half this time to load the page, then stay on page for rest of half.
     pageWaitRand = pageWaitRand / 2;
-    setTimeout(function () {
 
-        if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
-            // unfollow or follow a user
-            if (followIndex > unfollowIndex && unfollowIndex < unfollowList.length) {
-                // unfollow
-                var user = unfollowList[unfollowIndex];
-                var url = "https://www.instagram.com/" + user + "/";
+    if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
+        // unfollow or follow a user
+        if (followIndex > unfollowIndex && unfollowIndex < unfollowList.length) {
+            // unfollow
+            var user = unfollowList[unfollowIndex];
+            var url = "https://www.instagram.com/" + user + "/";
 
-                if (location.href != url) {
-                    saveLocalData(localData);
-                    location.href = url;
-                    return false;
-                }
-                else {
+            if (location.href != url) {
+                saveLocalData(localData);
+                location.href = url;
+                return false;
+            }
+            else {
+                setTimeout(function () {
                     var unfollowBtn = getElementsLikeHtml("button", "Following")[0];
 
                     if (typeof unfollowBtn != "undefined") {
@@ -592,10 +592,11 @@ function followLoop() {
                         saveLocalData(localData);
                         location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
                     }, pageWaitRand);
-                }
+                }, pageWaitRand);
             }
-            else {
-                // follow
+        }
+        else {
+            // follow
                 var user = followList[followIndex];
                 var url = "https://www.instagram.com/" + user + "/";
 
@@ -605,39 +606,41 @@ function followLoop() {
                     return false;
                 }
                 else {
-                    var followBtn = getElementsLikeHtml("button", "Follow")[0];
-
-                    if (typeof followBtn != "undefined") {
-                        // follow user
-                        followBtn.click();
-
-                        localData.operation.counters.dailyFollows++;
-                        localData.operation.counters.globalFollows++;
-
-                        // update database
-                        botActionFollowSet(localData.user.username, user, function () {
-                            console.log("Follow tracked in DB.");
-                        }, function () {
-                            logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
-                        });
-                    }
-
-
-                    // act like we liked this no matter what to avoid getting stuck on the page.
-                    localData.operation.lists.followListIndex++;
-                    localData.operation.counters.dailyTaskCounter++;
-                    saveLocalData(localData);
-
-                    // skip to auto like, you are likely going to that page next anyway
                     setTimeout(function () {
+                        var followBtn = getElementsLikeHtml("button", "Follow")[0];
+
+                        if (typeof followBtn != "undefined") {
+                            // follow user
+                            followBtn.click();
+
+                            localData.operation.counters.dailyFollows++;
+                            localData.operation.counters.globalFollows++;
+
+                            // update database
+                            botActionFollowSet(localData.user.username, user, function () {
+                                console.log("Follow tracked in DB.");
+                            }, function () {
+                                logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
+                            });
+                        }
+
+
+                        // act like we liked this no matter what to avoid getting stuck on the page.
+                        localData.operation.lists.followListIndex++;
+                        localData.operation.counters.dailyTaskCounter++;
                         saveLocalData(localData);
-                        location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+
+                        // skip to auto like, you are likely going to that page next anyway
+                        setTimeout(function () {
+                            saveLocalData(localData);
+                            location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+                        }, pageWaitRand);
                     }, pageWaitRand);
                 }
-            }
         }
-        else if (autoLikeIndex < autoLikeList.length) {
-            // like post
+    }
+    else if (autoLikeIndex < autoLikeList.length) {
+        // like post
             var post = autoLikeList[autoLikeIndex];
             var url = "https://www.instagram.com/p/" + post.shortcode + "/";
 
@@ -647,47 +650,46 @@ function followLoop() {
                 return false;
             }
             else {
-                // on the page. like the post and log everything
-                var likeBtn = getElementsByHtml("span", "Like")[0];
-
-                if (typeof likeBtn != "undefined") {
-                    // like the post and track it
-                    likeBtn.click();
-
-                    localData.operation.counters.dailyLikes++;
-                    localData.operation.counters.globalLikes++;
-
-                    botActionLikeSet(localData.user.username, post.shortcode, function () {
-                        console.log("Tracked like in DB.");
-                    }, function () {
-                        logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
-                    });
-
-                }
-
-                // act like we liked this no matter what to avoid getting stuck on the page.
-                localData.operation.lists.autoLikeListIndex++;
-                localData.operation.counters.dailyTaskCounter++;
-                saveLocalData(localData);
-
-                // skip to next auto like, you are likely going to that page next anyway
-                // unless we are out of likes, then skip to follow as a guess
                 setTimeout(function () {
-                    saveLocalData(localData);
-                    if (autoLikeIndex + 1 < autoLikeList.length)
-                        location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
-                    else
-                        location.href = "https://www.instagram.com/" + followList[followIndex] + "/";
-                }, pageWaitRand);
+                    // on the page. like the post and log everything
+                    var likeBtn = getElementsByHtml("span", "Like")[0];
 
-                return false;
+                    if (typeof likeBtn != "undefined") {
+                        // like the post and track it
+                        likeBtn.click();
+
+                        localData.operation.counters.dailyLikes++;
+                        localData.operation.counters.globalLikes++;
+
+                        botActionLikeSet(localData.user.username, post.shortcode, function () {
+                            console.log("Tracked like in DB.");
+                        }, function () {
+                            logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
+                        });
+
+                    }
+
+                    // act like we liked this no matter what to avoid getting stuck on the page.
+                    localData.operation.lists.autoLikeListIndex++;
+                    localData.operation.counters.dailyTaskCounter++;
+                    saveLocalData(localData);
+
+                    // skip to next auto like, you are likely going to that page next anyway
+                    // unless we are out of likes, then skip to follow as a guess
+                    setTimeout(function () {
+                        saveLocalData(localData);
+                        if (autoLikeIndex + 1 < autoLikeList.length)
+                            location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
+                        else
+                            location.href = "https://www.instagram.com/" + followList[followIndex] + "/";
+                    }, pageWaitRand);
+                }, pageWaitRand);
             }
-        }
-        else {
-            localData.operation.flags.likeFollowUsers = 0;
-            saveLocalData(localData);
-        }
-    }, pageWaitRand);
+    }
+    else {
+        localData.operation.flags.likeFollowUsers = 0;
+        saveLocalData(localData);
+    }
 }
 
 function passiveTasksLoop() {
@@ -1861,10 +1863,10 @@ function createBotTracker() {
     actionsLeft -= localData.operation.lists.unfollowListIndex;
     actionsLeft -= localData.operation.lists.autoLikeListIndex;
 
-    var estimatedTimeLeft = (WAIT_ON_PAGE_TIME) * actionsLeft;
+    var estimatedTimeLeft = (WAIT_ON_PAGE_TIME + 1500) * actionsLeft;
     var finTime = new Date(curTime.getTime() + estimatedTimeLeft);
 
-    var html = "<div id='botTracker' style='box-shadow: 3px 7px 13px #cecece;position: absolute;bottom: 50px;left: 50px;width: 250px;padding: 20px;background: #fafafa;border: 1px solid #9e9e9e;'>";
+    var html = "<div id='botTracker' style='position: absolute;bottom: 50px;left: 50px;width: 250px;padding: 20px;background: #fafafa;border: 1px solid #9e9e9e;'>";
     html += "<p><strong>Follow List Progress</strong>: " + localData.operation.lists.followListIndex + "/" + localData.operation.lists.followList.length + "</p>";
     html += "<p><strong>Unfollow List Progress</strong>: " + localData.operation.lists.unfollowListIndex + "/" + localData.operation.lists.unfollowList.length + "</p>";
     html += "<p><strong>Like List Progress</strong>: " + localData.operation.lists.autoLikeListIndex + "/" + localData.operation.lists.autoLikeList.length + "</p>";
