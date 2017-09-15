@@ -3,8 +3,6 @@
 
 require getcwd().'/../../lib/h.php';
 
-date_default_timezone_set("America/Phoenix");
-
 if( isset( $_POST["log_msg"] ) && isset( $_POST["log_type"] ) ){
 
 	$log_type = $_POST["log_type"];

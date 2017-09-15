@@ -11,4 +11,7 @@ require 'get_queries.php';
 // use for sql_set_query($sql);
 require 'set_queries.php';
 
+// set time zone to AZ time
+date_default_timezone_set('America/Phoenix');
+
 ?>
