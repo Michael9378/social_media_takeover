@@ -13,21 +13,20 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["follow_base"] ) ){
 	$following = $follow_base->following;
 
 	// Flush follow info for refill.
-	sql_set_query("DELETE FROM `ig_follows` WHERE `follows_user_id` = '" . $user_id . "' OR `user_id` = '" . $user_id . "';");
+	sql_set_query("DELETE FROM `ig_follows` WHERE `follows_unfollow_date` != '0000-00-00' AND (`follows_user_id` = '" . $user_id . "' OR `user_id` = '" . $user_id . "');");
 
 	$date = date("Y/m/d");
 
-	$sql = "INSERT INTO `ig_follows` ";
+	$sql = "INSERT IGNORE INTO `ig_follows` ";
 	$sql .= "VALUES";
 	foreach($followers as $follow){
-		$sql .= "('".$follow."', '".$user_id."', 'NULL', '".$date."'), ";
+		$sql .= "('".$follow."', '".$user_id."', '0000-00-00', '".$date."'), ";
 	}
 	foreach($following as $follow){
-		$sql .= "('".$user_id."', '".$follow."', 'NULL', '".$date."'), ";
+		$sql .= "('".$user_id."', '".$follow."', '0000-00-00', '".$date."'), ";
 	}
 	$sql = substr($sql, 0, -2);
-	$sql .= " ON DUPLICATE KEY UPDATE ";
-	$sql .= "`freshness`='".$date."';";
+	$sql .= " ;";
 
 	jr( sql_set_query( $sql ) );
 }

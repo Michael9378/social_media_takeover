@@ -200,6 +200,46 @@ function saveCurUserInfo() {
             logEvent(2, "saveCurUserInfo: couldnt save cur user to database.", null);
         });
 
+        getUserFollowBase(localData.user.igObj.id, true, MAX_USER_SCRAPE, function (response) {
+            // success
+            response = response.data.user.edge_followed_by.edges;
+            var followers = [];
+            for (var k = 0; k < response.length; k++) {
+                followers.push(response[k].node.username);
+            }
+
+            getUserFollowBase(localData.user.igObj.id, false, MAX_USER_SCRAPE, function (response) {
+                // success
+                response = response.data.user.edge_follow.edges;
+                var following = [];
+                for (var k = 0; k < response.length; k++) {
+                    following.push(response[k].node.username);
+                }
+
+                var followBase = {};
+                followBase.followers = followers;
+                followBase.following = following;
+
+                console.log(followBase);
+
+                followBaseSet(localData.user.username, followBase, function () {
+                    console.log("Saved follow base for cur user to db.");
+                }, function () {
+                    logEvent(2, "followBaseSet: Couldn't set follow base of cur user.", null);
+                });
+
+            }, function () {
+                // error
+                responses++;
+                logEvent(2, "saveTopFollowings: Failed to get top following for user: " + topPoster.username, null);
+            });
+
+        }, function () {
+            // error
+            responses++;
+            logEvent(2, "saveTopFollowings: Failed to get top following for user: " + topPoster.username, null);
+        });
+
         // set todays stats in db
         historicalSet(localData.user.username, response.followed_by.count, response.follows.count, response.media.count, function () { }, function () {
             logEvent(2, "historicalSet: couldnt save cur user to database.", null);
@@ -490,14 +530,94 @@ function followLoop() {
 
     // wait on page time is the standard
     // introduce randomness of +/- 15 seconds around this standard
-    var pageWaitRand = Math.ceil(Math.random()*30) + WAIT_ON_PAGE_TIME - 15;
+    var pageWaitRand = Math.ceil(Math.random() * 30) + WAIT_ON_PAGE_TIME - 15;
 
-    if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
-        // unfollow or follow a user
-        if (followIndex > unfollowIndex) {
-            // unfollow
-            var user = unfollowList[unfollowIndex];
-            var url = "https://www.instagram.com/" + user + "/";
+    // make sure we get what we need to do done in time. Otherwise, force a reload
+    setTimeout(function () {
+        location.reload();
+    }, pageWaitRand * 3);
+
+    // wait half this time to load the page, then stay on page for rest of half.
+    pageWaitRand = pageWaitRand / 2;
+    setTimeout(function () {
+
+        if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
+            // unfollow or follow a user
+            if (followIndex > unfollowIndex) {
+                // unfollow
+                var user = unfollowList[unfollowIndex];
+                var url = "https://www.instagram.com/" + user + "/";
+
+                if (location.href != url) {
+                    saveLocalData(localData);
+                    location.href = url;
+                    return false;
+                }
+                else {
+                    var unfollowBtn = getElementsLikeHtml("button", "Following")[0];
+
+                    if (typeof unfollowBtn != "undefined")
+                        unfollowBtn.click();
+
+                    // update database
+                    botActionUnfollowSet(localData.user.username, user, function () {
+                        console.log("Unfollow tracked in DB.");
+                    }, function () {
+                        logEvent(1, "botActionUnfollowSet: Failed to send unfollow to database. user: " + localData.user.username + " unfollows: " + user, function () { });
+                    })
+
+                    // update counters
+                    localData.operation.lists.unfollowListIndex++;
+                    localData.operation.counters.dailyTaskCounter++;
+                    saveLocalData(localData);
+
+                    // skip to auto like, you are likely going to that page next anyway
+                    setTimeout(function () {
+                        saveLocalData(localData);
+                        location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+                    }, pageWaitRand);
+                }
+            }
+            else {
+                // follow
+                var user = followList[followIndex];
+                var url = "https://www.instagram.com/" + user + "/";
+
+                if (location.href != url) {
+                    saveLocalData(localData);
+                    location.href = url;
+                    return false;
+                }
+                else {
+                    var followBtn = getElementsLikeHtml("button", "Follow")[0];
+
+                    if (typeof followBtn != "undefined")
+                        followBtn.click();
+
+                    // update database
+                    botActionFollowSet(localData.user.username, user, function () {
+                        console.log("Follow tracked in DB.");
+                    }, function () {
+                        logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
+                    })
+
+                    // update counters
+                    localData.operation.lists.followListIndex++;
+                    localData.operation.counters.dailyTaskCounter++;
+                    saveLocalData(localData);
+
+                    // skip to auto like, you are likely going to that page next anyway
+                    setTimeout(function () {
+                        saveLocalData(localData);
+                        location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+                    }, pageWaitRand);
+                }
+            }
+        }
+        else if (autoLikeIndex < autoLikeList.length) {
+            // like post
+            var post = autoLikeList[autoLikeIndex];
+            var url = "https://www.instagram.com/p/" + post.shortcode + "/";
 
             if (location.href != url) {
                 saveLocalData(localData);
@@ -505,111 +625,41 @@ function followLoop() {
                 return false;
             }
             else {
-                var unfollowBtn = getElementsLikeHtml("button", "Following")[0];
-                
-                if(typeof unfollowBtn != "undefined")
-                    unfollowBtn.click();
+                // on the page. like the post and log everything
+                var likeBtn = getElementsByHtml("span", "Like")[0];
 
-                // update database
-                botActionUnfollowSet(localData.user.username, user, function () {
-                    console.log("Unfollow tracked in DB.");
-                }, function () {
-                    logEvent(1, "botActionUnfollowSet: Failed to send unfollow to database. user: " + localData.user.username + " unfollows: " + user, function () { });
-                })
+                if (typeof likeBtn != "undefined")
+                    likeBtn.click();
 
-                // update counters
-                localData.operation.lists.unfollowListIndex++;
-                localData.operation.counters.dailyTaskCounter++;
-                saveLocalData(localData);
-
-                // skip to auto like, you are likely going to that page next anyway
-                setTimeout(function () {
-                    saveLocalData(localData);
-                    location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
-                }, pageWaitRand);
-            }
-        }
-        else {
-            // follow
-            var user = followList[followIndex];
-            var url = "https://www.instagram.com/" + user + "/";
-
-            if (location.href != url) {
-                saveLocalData(localData);
-                location.href = url;
-                return false;
-            }
-            else {
-                var followBtn = getElementsLikeHtml("button", "Follow")[0];
-
-                if(typeof followBtn != "undefined")
-                    followBtn.click();
-
-                // update database
-                botActionFollowSet(localData.user.username, user, function () {
-                    console.log("Follow tracked in DB.");
-                }, function () {
-                    logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
-                })
-
-                // update counters
-                localData.operation.lists.followListIndex++;
-                localData.operation.counters.dailyTaskCounter++;
-                saveLocalData(localData);
-
-                // skip to auto like, you are likely going to that page next anyway
-                setTimeout(function () {
-                    saveLocalData(localData);
-                    location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
-                }, pageWaitRand);
-            }
-        }
-    }
-    else if (autoLikeIndex < autoLikeList.length) {
-        // like post
-        var post = autoLikeList[autoLikeIndex];
-        var url = "https://www.instagram.com/p/" + post.shortcode + "/";
-
-        if (location.href != url) {
-            saveLocalData(localData);
-            location.href = url;
-            return false;
-        }
-        else {
-            // on the page. like the post and log everything
-            var likeBtn = getElementsByHtml("span", "Like")[0];
-
-            if(typeof likeBtn != "undefined")
-                likeBtn.click();
-
-            botActionLikeSet(localData.user.username, post.shortcode, function () {
+                botActionLikeSet(localData.user.username, post.shortcode, function () {
                     console.log("Tracked like in DB.");
                 }, function () {
                     logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
-            });
+                });
 
-            // update counters and index
-            localData.operation.lists.autoLikeListIndex++;
-            localData.operation.counters.dailyTaskCounter++;
-            saveLocalData(localData);
-
-            // skip to next auto like, you are likely going to that page next anyway
-            // unless we are out of likes, then skip to follow as a guess
-            setTimeout(function () {
+                // update counters and index
+                localData.operation.lists.autoLikeListIndex++;
+                localData.operation.counters.dailyTaskCounter++;
                 saveLocalData(localData);
-                if(autoLikeIndex + 1 < autoLikeList.length)
-                    location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
-                else 
-                    location.href = "https://www.instagram.com/" + followList[followIndex] + "/";
-            }, pageWaitRand);
 
-            return false;
+                // skip to next auto like, you are likely going to that page next anyway
+                // unless we are out of likes, then skip to follow as a guess
+                setTimeout(function () {
+                    saveLocalData(localData);
+                    if (autoLikeIndex + 1 < autoLikeList.length)
+                        location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
+                    else
+                        location.href = "https://www.instagram.com/" + followList[followIndex] + "/";
+                }, pageWaitRand);
+
+                return false;
+            }
         }
-    }
-    else {
-        localData.operation.flags.likeFollowUsers = 0;
-        saveLocalData(localData);
-    }
+        else {
+            localData.operation.flags.likeFollowUsers = 0;
+            saveLocalData(localData);
+        }
+    }, pageWaitRand);
 }
 
 function passiveTasksLoop() {
@@ -682,6 +732,11 @@ function passiveTasksLoop() {
 
 function getUserInfo(username, callback, error) {
 
+    if (typeof callback != 'function')
+        callback = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     var url = "https://www.instagram.com/" + username + "/?__a=1";
 
     jQuery.get({
@@ -710,6 +765,11 @@ function getUserPosts(userIDCode, numberPosts, callback, error) {
     // first:       Number of posts to pull
     // id:          User id
 
+    if (typeof callback != 'function')
+        callback = function () { };
+    if (typeof error != 'function')
+        error = function () { };
+
     var url = "https://www.instagram.com/graphql/query/?query_id=17888483320059182&variables={%22id%22:%22" + userIDCode + "%22,%22first%22:" + numberPosts + "}";
 
     jQuery.get({
@@ -729,6 +789,11 @@ function getUserFollowBase(userIDCode, followersFlag, maxReturned, callback, err
     // Following:   17874545323001329
     // first:       Number of posts to pull
     // id:          User id
+
+    if (typeof callback != 'function')
+        callback = function () { };
+    if (typeof error != 'function')
+        error = function () { };
 
     var url;
 
@@ -755,6 +820,11 @@ function getTagPage(tagName, numberPosts, callback, error) {
     // Tag Posts:   17875800862117404
     // tag_name:    Needed for tag queries
     // first:       Number of posts to pull
+
+    if (typeof callback != 'function')
+        callback = function () { };
+    if (typeof error != 'function')
+        error = function () { };
 
     var url = "https://www.instagram.com/graphql/query/?query_id=17875800862117404&variables={%22tag_name%22:%22" + tagName + "%22,%22first%22:" + numberPosts + "}";
 
@@ -883,6 +953,10 @@ function timeoutLoop(index, stop, time, body, done) {
 
 // update this to log errors in the future. msgTypes 0 for success, 1 for warning, 2 for error
 function logEvent(msgType, msg, callback) {
+
+    if (typeof callback != 'function')
+        callback = function () { };
+
     // update this to store logs in the database in the future.
     // update to send errors via email to track problems
     var timeStamp = new Date();
@@ -1161,10 +1235,6 @@ function userSet(username, userid, num_posts, num_followers, num_following, prof
 }
 
 function deletedUserSet(username) {
-    if (typeof success != 'function')
-        success = function () { };
-    if (typeof error != 'function')
-        error = function () { };
 
     jQuery.post({
         url: api_url + "/user/set/deleted.php",
@@ -1328,7 +1398,7 @@ function followBaseSet(user, followBase, success, error) {
         url: api_url + "/follows/set/mass_set.php",
         data: {
             user_id: user,
-            follow_base: followBase
+            follow_base: JSON.stringify(followBase)
         },
         success: function (result) {
             result = JSON.parse(result);
@@ -1682,6 +1752,9 @@ function commentGet(post, success, error) {
 }
 
 function setLog(logType, log, callback) {
+
+    if (typeof callback != 'function')
+        callback = function () { };
 
     jQuery.post({
         url: api_url + "/log/set/",
