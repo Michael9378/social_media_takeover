@@ -48,10 +48,15 @@ function main() {
     // get local data
     localData = getLocalData();
 
-    // TODO: Add timeout check as well
     // checks to make sure we arent looping on the same page aimlessly
     if (checkForStuckPage()) {
         console.log("We looped on this page 5 times.");
+        return false;
+    }
+
+    if (checkFor429()) {
+        console.log("We recently 429'ed. Waiting 10 minutes before checking again.");
+        setTimeout(function () { location.reload();}, 1000 * 60 * 10);
         return false;
     }
 
@@ -447,7 +452,9 @@ function buildLikeFollowList() {
         if (finishedTasks >= 3)
             finishedRunningDailyTasks();
 
-    }, buildLikeFollowList);
+    }, function () {
+        console.log("Failed to get auto follow");
+    });
 
     // TODO
     // get unfollow list
@@ -469,7 +476,9 @@ function buildLikeFollowList() {
         if (finishedTasks >= 3)
             finishedRunningDailyTasks();
 
-    }, buildLikeFollowList);
+    }, function () {
+        console.log("Failed to get auto unfollow");
+    });
 
     // grab a 100-200 recent posts per tag
     var responses = 0;
@@ -498,6 +507,7 @@ function buildLikeFollowList() {
         }, function () {
             // error
             responses++;
+            logEvent(2, "buildLikeFollowList: Failed to get recent tag pages for liking. Skipping tag page for recent likes: " + tags[i]);
         });
     }
 
@@ -765,6 +775,11 @@ function getUserInfo(username, callback, error) {
                 deletedUserSet(username);
                 callback();
             }
+            else if (jqXHR.status == 429) {
+                logEvent(1, "getUserInfo: 429. Setting last429 to this time and waiting 10 minutes before moving on.");
+                localData.operation.counters.last429 = new Date();
+                setTimeout(error, 1000 * 60 * 10);
+            }
             else {
                 // log failed ajax call
                 logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
@@ -792,8 +807,15 @@ function getUserPosts(userIDCode, numberPosts, callback, error) {
         url: url,
         success: callback,
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
-            error();
+            if (jqXHR.status == 429) {
+                logEvent(1, "getUserInfo: 429. Setting last429 to this time and waiting 10 minutes before moving on.");
+                localData.operation.counters.last429 = new Date();
+                setTimeout(error, 1000 * 60 * 10);
+            }
+            else {
+                logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+                error();
+            }
         }
     });
 }
@@ -824,8 +846,15 @@ function getUserFollowBase(userIDCode, followersFlag, maxReturned, callback, err
         url: url,
         success: callback,
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
-            error();
+            if (jqXHR.status == 429) {
+                logEvent(1, "getUserInfo: 429. Setting last429 to this time and waiting 10 minutes before moving on.");
+                localData.operation.counters.last429 = new Date();
+                setTimeout(error, 1000 * 60 * 10);
+            }
+            else {
+                logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+                error();
+            }
         }
     });
 }
@@ -848,8 +877,15 @@ function getTagPage(tagName, numberPosts, callback, error) {
         url: url,
         success: callback,
         error: function (jqXHR, textStatus, errorThrown) {
-            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
-            error();
+            if (jqXHR.status == 429) {
+                logEvent(1, "getUserInfo: 429. Setting last429 to this time and waiting 10 minutes before moving on.");
+                localData.operation.counters.last429 = new Date();
+                setTimeout(error, 1000 * 60 * 10);
+            }
+            else {
+                logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+                error();
+            }
         }
     });
 }
@@ -1032,6 +1068,7 @@ function getLocalData() {
         data.operation.counters.dailyTaskCounter = 0;
         data.operation.counters.pageStuckUrl = "";
         data.operation.counters.pageStuckCounter = 0;
+        data.operation.counters.last429 = 0;
         data.operation.counters.globalLikes = 0;
         data.operation.counters.globalFollows = 0;
 
@@ -1083,6 +1120,19 @@ function checkForStuckPage() {
         return true;
     }
         // return false if we arent stuck
+    else
+        return false;
+}
+
+// make sure we haven't had a 429 in the past 10 minutes
+function checkFor429() {
+    var lastTime = new Date(localData.operation.counters.last429);
+    var thisTime = new Date();
+    var tenMin = 1000 * 60 * 10;
+    var passedTime = thisTime - lastTime;
+
+    if (passedTime < tenMin)
+        return true;
     else
         return false;
 }
@@ -1448,7 +1498,7 @@ function followGetAutoFollow(limit, minimumPostsFromUsers, success, error) {
             if (result)
                 success(result);
             else
-                error();
+                success([]);
         },
         error: function (jqXHR, textStatus, errorThrown) {
             logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
@@ -1473,7 +1523,7 @@ function followGetAutoUnfollow(user, limit, success, error) {
             if (result)
                 success(result);
             else
-                error();
+                success([]);
         },
         error: function (jqXHR, textStatus, errorThrown) {
             logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
