@@ -529,6 +529,8 @@ function finishedRunningDailyTasks() {
 }
 
 function followLoop() {
+    // only create bot tracker when we are in the follow loop as this is when it is relevant
+    createBotTracker();
     // we have follow, unfollow and likeable posts lists build
     var followList = localData.operation.lists.followList;
     var followIndex = localData.operation.lists.followListIndex;
@@ -1845,4 +1847,28 @@ function setLog(logType, log, callback) {
                 callback();
         }
     });
+}
+
+
+/***********************************************
+**************** UI Functions ******************
+************************************************/
+
+function createBotTracker() {
+    var actionsLeft = localData.operation.lists.followList.length + localData.operation.lists.unfollowList.length + localData.operation.lists.autoLikeList.length;
+
+    actionsLeft -= localData.operation.lists.followListIndex;
+    actionsLeft -= localData.operation.lists.unfollowListIndex;
+    actionsLeft -= localData.operation.lists.autoLikeListIndex;
+
+    var estimatedTimeLeft = (WAIT_ON_PAGE_TIME) * actionsLeft;
+    var finTime = new Date(curTime.getTime() + estimatedTimeLeft);
+
+    var html = "<div id='botTracker' style='box-shadow: 3px 7px 13px #cecece;position: absolute;bottom: 50px;left: 50px;width: 250px;padding: 20px;background: #fafafa;border: 1px solid #9e9e9e;'>";
+    html += "<p><strong>Follow List Progress</strong>: " + localData.operation.lists.followListIndex + "/" + localData.operation.lists.followList.length + "</p>";
+    html += "<p><strong>Unfollow List Progress</strong>: " + localData.operation.lists.unfollowListIndex + "/" + localData.operation.lists.unfollowList.length + "</p>";
+    html += "<p><strong>Like List Progress</strong>: " + localData.operation.lists.autoLikeListIndex + "/" + localData.operation.lists.autoLikeList.length + "</p>";
+    html += "<p><strong>Last 429</strong>: " + new Date(localData.operation.counters.last429);
+    html += "<p><strong>Estimated Done Time</strong>: " + finTime.toLocaleString().split(", ")[1];
+    jQuery("body").append(html);
 }
