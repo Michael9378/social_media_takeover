@@ -176,6 +176,9 @@ function clearDailyTotals() {
 
     // reset daily counters
     localData.operation.counters.dailyTaskCounter = 0;
+    localData.operation.counters.dailyLikes = 0;
+    localData.operation.counters.dailyFollows = 0;
+    localData.operation.counters.pageStuckCounter = 0;
 
     // reset lists that are built with .push()
     localData.operation.lists.tagPages = [];
@@ -556,17 +559,20 @@ function followLoop() {
                 else {
                     var unfollowBtn = getElementsLikeHtml("button", "Following")[0];
 
-                    if (typeof unfollowBtn != "undefined")
+                    if (typeof unfollowBtn != "undefined") {
+                        // unfollow user
                         unfollowBtn.click();
 
-                    // update database
-                    botActionUnfollowSet(localData.user.username, user, function () {
-                        console.log("Unfollow tracked in DB.");
-                    }, function () {
-                        logEvent(1, "botActionUnfollowSet: Failed to send unfollow to database. user: " + localData.user.username + " unfollows: " + user, function () { });
-                    })
+                        // update database
+                        botActionUnfollowSet(localData.user.username, user, function () {
+                            console.log("Unfollow tracked in DB.");
+                        }, function () {
+                            logEvent(1, "botActionUnfollowSet: Failed to send unfollow to database. user: " + localData.user.username + " unfollows: " + user, function () { });
+                        });
+                    }
 
-                    // update counters
+
+                    // act like we liked this no matter what to avoid getting stuck on the page.
                     localData.operation.lists.unfollowListIndex++;
                     localData.operation.counters.dailyTaskCounter++;
                     saveLocalData(localData);
@@ -591,17 +597,23 @@ function followLoop() {
                 else {
                     var followBtn = getElementsLikeHtml("button", "Follow")[0];
 
-                    if (typeof followBtn != "undefined")
+                    if (typeof followBtn != "undefined") {
+                        // follow user
                         followBtn.click();
 
-                    // update database
-                    botActionFollowSet(localData.user.username, user, function () {
-                        console.log("Follow tracked in DB.");
-                    }, function () {
-                        logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
-                    })
+                        localData.operation.counters.dailyFollows++;
+                        localData.operation.counters.globalFollows++;
 
-                    // update counters
+                        // update database
+                        botActionFollowSet(localData.user.username, user, function () {
+                            console.log("Follow tracked in DB.");
+                        }, function () {
+                            logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
+                        });
+                    }
+
+
+                    // act like we liked this no matter what to avoid getting stuck on the page.
                     localData.operation.lists.followListIndex++;
                     localData.operation.counters.dailyTaskCounter++;
                     saveLocalData(localData);
@@ -628,16 +640,22 @@ function followLoop() {
                 // on the page. like the post and log everything
                 var likeBtn = getElementsByHtml("span", "Like")[0];
 
-                if (typeof likeBtn != "undefined")
+                if (typeof likeBtn != "undefined") {
+                    // like the post and track it
                     likeBtn.click();
 
-                botActionLikeSet(localData.user.username, post.shortcode, function () {
-                    console.log("Tracked like in DB.");
-                }, function () {
-                    logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
-                });
+                    localData.operation.counters.dailyLikes++;
+                    localData.operation.counters.globalLikes++;
 
-                // update counters and index
+                    botActionLikeSet(localData.user.username, post.shortcode, function () {
+                        console.log("Tracked like in DB.");
+                    }, function () {
+                        logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
+                    });
+
+                }
+
+                // act like we liked this no matter what to avoid getting stuck on the page.
                 localData.operation.lists.autoLikeListIndex++;
                 localData.operation.counters.dailyTaskCounter++;
                 saveLocalData(localData);
