@@ -12,11 +12,11 @@ else {
 	$limit = '2000';
 	$min_posts = '0';
 	
-	if( isset(  $_POST["limit"] ) )
+	if( isset( $_POST["limit"] ) )
 		$limit = $_POST["limit"];
 	
 	if( isset(  $_POST["min_posts"] ) )
-		$limit = $_POST["min_posts"];	
+		$min_posts = $_POST["min_posts"];	
 	
 	$sql = 'SELECT follower_user_id as user_id
 	FROM (
@@ -32,13 +32,12 @@ else {
 		) AS follow_rating
 		FROM ig_users AS follower_user, (
 		SELECT ROUND(AVG(user_num_posts)) AS posts, ROUND(AVG(user_num_followers)) AS followers, ROUND(AVG(user_num_following)) AS following
-			FROM ig_users
-			WHERE user_id IN 
-			(
-				SELECT ig_follows.user_id 
-				FROM ig_follows 
-				WHERE ig_follows.follows_user_id = "'.$user_id.'"
-			)
+		FROM ig_users
+		WHERE user_id IN 
+		(
+			SELECT ig_follows.user_id 
+			FROM ig_follows 
+			WHERE ig_follows.follows_user_id = "'.$user_id.'"
 		)
 	) AS ig_'.$user_id.'_avgs 
 	WHERE follower_user.user_num_followers < follower_user.user_num_following
