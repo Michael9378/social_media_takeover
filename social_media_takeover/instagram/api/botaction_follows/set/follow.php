@@ -23,7 +23,7 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["follows_user_id"] ) ){
 	$sql .= "ON DUPLICATE KEY UPDATE ";
 	$sql .= "`action_date`='".$date."';";
 	
-	echo $sql; // jr( sql_set_query( $sql ) );
+	jr( sql_set_query( $sql ) );
 }
 else
 	jr("Missing user_id and/or follows_user_id params.");
