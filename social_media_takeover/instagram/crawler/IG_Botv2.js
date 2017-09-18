@@ -1053,6 +1053,8 @@ function getLocalData() {
         data.operation = {};
         data.operation.flags = {};
         data.operation.flags.likeFollowUsers = 0;
+        
+        data.operation.dailyTimer = 0
 
         data.operation.lists = {};
         data.operation.lists.errorLog = [];
