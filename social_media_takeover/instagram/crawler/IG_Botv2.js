@@ -31,13 +31,13 @@ var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var curTime = new Date();
 var localData;
 
-var MAX_USER_SCRAPE = 2750;
-var MAX_FOLLOWS = 125;
-var MAX_UNFOLLOWS = 125;
-var MAX_LIKES = 500;
+var MAX_USER_SCRAPE = 2700;
+var MAX_FOLLOWS = 200;
+var MAX_UNFOLLOWS = 200;
+var MAX_LIKES = 400;
 
 // TODO: Fine tune wait times
-var WAIT_ON_PAGE_TIME = 1000 * 45;
+var WAIT_ON_PAGE_TIME = 1000 * 28;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
@@ -543,7 +543,8 @@ function followLoop() {
 
     // wait on page time is the standard
     // introduce randomness of +/- 15 seconds around this standard
-    var pageWaitRand = Math.ceil(Math.random() * 30) + WAIT_ON_PAGE_TIME - 15;
+    var pageWaitVariance = WAIT_ON_PAGE_TIME / 4;
+    var pageWaitRand = Math.ceil(Math.random() * pageWaitVariance * 2) + WAIT_ON_PAGE_TIME - pageWaitVariance;
 
     // make sure we get what we need to do done in time. Otherwise, force a reload
     setTimeout(function () {
@@ -553,7 +554,7 @@ function followLoop() {
     // wait half this time to load the page, then stay on page for rest of half.
     pageWaitRand = pageWaitRand / 2;
 
-    if ((localData.operation.counters.dailyTaskCounter % 3 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
+    if ((localData.operation.counters.dailyTaskCounter % 2 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
         // unfollow or follow a user
         if (followIndex > unfollowIndex && unfollowIndex < unfollowList.length) {
             // unfollow

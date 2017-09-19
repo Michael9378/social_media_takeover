@@ -43,8 +43,8 @@ else {
 	WHERE follower_user.user_num_followers < follower_user.user_num_following
 	AND follower_user.user_num_following < 2000
 	AND follower_user.user_num_followers < 2000
-	AND follower_user.user_num_following > 100
-	AND follower_user.user_num_followers > 50
+	AND follower_user.user_num_following > 200
+	AND follower_user.user_num_followers > 150
 	AND follower_user.user_num_posts > '.$min_posts.'
 	ORDER BY follow_rating) as t1
 	WHERE t1.follower_user_id NOT IN (
