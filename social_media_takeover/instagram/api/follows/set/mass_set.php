@@ -13,7 +13,7 @@ if( isset( $_POST["user_id"] ) && isset( $_POST["follow_base"] ) ){
 	$following = $follow_base->following;
 
 	// Flush follow info for refill.
-	sql_set_query("DELETE FROM `ig_follows` WHERE `follows_unfollow_date` != '0000-00-00' AND (`follows_user_id` = '" . $user_id . "' OR `user_id` = '" . $user_id . "');");
+	sql_set_query("DELETE FROM `ig_follows` WHERE `follows_unfollow_date` == '0000-00-00' AND (`follows_user_id` = '" . $user_id . "' OR `user_id` = '" . $user_id . "');");
 
 	$date = date("Y/m/d");
 
