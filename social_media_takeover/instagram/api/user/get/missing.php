@@ -13,7 +13,7 @@ if( isset( $_POST["scrape_limit"] ) && isset( $_POST["user_id"] ) ){
 	$sql .= "`follows_user_id` = '" . $user_id . "' ";
 	$sql .= "&& `user_id` NOT IN(";
 	$sql .= "SELECT `user_id` FROM `ig_users` WHERE `freshness` > '" . $month_ago . "' ";	
-	$sql .= ") AND `user_id` NOT IN (SELECT `user_id` FROM ig_deleted_users) LIMIT 0,".$scrape_limit.";";
+	$sql .= ") AND `user_id` NOT IN (SELECT `user_id` FROM ig_deleted_users) ORDER BY RAND() LIMIT 0,".$scrape_limit.";";
 
 	jr( sql_get_query( $sql ) );
 }
@@ -57,7 +57,7 @@ else if( isset( $_POST["scrape_limit"] ) ){
 	$sql .= "SELECT `user_id` FROM ig_deleted_users ";
 	$sql .= "UNION ";
 	$sql .= "SELECT `user_id` FROM `ig_users`) ";
-	$sql .= "LIMIT 0,".$scrape_limit.";";
+	$sql .= " ORDER BY RAND() LIMIT 0,".$scrape_limit.";";
 
 	jr( sql_get_query( $sql ) );
 }

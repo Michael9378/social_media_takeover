@@ -31,13 +31,13 @@ var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var curTime = new Date();
 var localData;
 
-var MAX_USER_SCRAPE = 2700;
-var MAX_FOLLOWS = 200;
-var MAX_UNFOLLOWS = 200;
-var MAX_LIKES = 400;
+var MAX_USER_SCRAPE = 2500;
+var MAX_FOLLOWS = 300;
+var MAX_UNFOLLOWS = 300;
+var MAX_LIKES = 600;
 
 // TODO: Fine tune wait times
-var WAIT_ON_PAGE_TIME = 1000 * 28;
+var WAIT_ON_PAGE_TIME = 1000 * 25;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
@@ -75,15 +75,17 @@ function main() {
 
         // figure out how long we have to wait
         var curHour = curTime.getHours() + curTime.getMinutes() / 60;
-        var waitHours = 0.5;
+        // default to a ten minute wait if we are inside the proper window to start.
+        var waitHours = 0.15;
 
+        // wait until we are in the start window again, but only wait at max 2 hours.
         if (curHour > localData.user.likeFollowStartTime + 2)
-            waitHours = 24 - curHour + localData.user.likeFollowStartTime - 1;
+            waitHours = Math.min(24 - curHour + localData.user.likeFollowStartTime - 1, 2);
         if (curHour < localData.user.likeFollowStartTime - 1)
-            waitHours = localData.user.likeFollowStartTime - curHour - 1;
+            waitHours = Math.min(localData.user.likeFollowStartTime - curHour - 1, 2);
 
         console.log("Hours to wait: " + waitHours);
-        // wait 30 minutes before we check for daily tasks again
+        // wait to check for daily tasks again
         setTimeout(function () {
             // go to a random page to make sure we aren't triggering the stuck on page check
             var randomInt = Math.floor(100 * Math.random());
@@ -518,7 +520,7 @@ function buildLikeFollowList() {
 }
 
 function finishedRunningDailyTasks() {
-    // set daily timer so we dont hop back into daily check on page reload.
+    // set daily timer (will be at what time we first loaded the page) so we dont hop back into daily check on page reload.
     localData.operation.dailyTimer = curTime;
     // set for following and liking
     localData.operation.flags.likeFollowUsers = 1;
@@ -1868,15 +1870,15 @@ function createBotTracker() {
     actionsLeft -= localData.operation.lists.followListIndex;
     actionsLeft -= localData.operation.lists.unfollowListIndex;
     actionsLeft -= localData.operation.lists.autoLikeListIndex;
-
-    var estimatedTimeLeft = (WAIT_ON_PAGE_TIME + 1500) * actionsLeft;
+    // estimated time left is wait on page time plus 2 seconds of load time times how many actions we have left
+    var estimatedTimeLeft = (WAIT_ON_PAGE_TIME + 2000) * actionsLeft;
     var finTime = new Date(curTime.getTime() + estimatedTimeLeft);
 
     var html = "<div id='botTracker' style='position: absolute;bottom: 50px;left: 50px;width: 250px;padding: 20px;background: #fafafa;border: 1px solid #9e9e9e;'>";
     html += "<p><strong>Follow List Progress</strong>: " + localData.operation.lists.followListIndex + "/" + localData.operation.lists.followList.length + "</p>";
     html += "<p><strong>Unfollow List Progress</strong>: " + localData.operation.lists.unfollowListIndex + "/" + localData.operation.lists.unfollowList.length + "</p>";
     html += "<p><strong>Like List Progress</strong>: " + localData.operation.lists.autoLikeListIndex + "/" + localData.operation.lists.autoLikeList.length + "</p>";
-    html += "<p><strong>Last 429</strong>: " + new Date(localData.operation.counters.last429) + "</p>";
     html += "<p><strong>Estimated Done Time</strong>: " + finTime.toLocaleString().split(", ")[1] + "</p>";
+    html += "<p><button onclick='localStorage.clear()'>Clear Local Data</button></p>";
     jQuery("body").append(html);
 }
