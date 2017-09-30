@@ -568,7 +568,10 @@ function followLoop() {
             }
             else {
                 setTimeout(function () {
-                    var unfollowBtn = getElementsLikeHtml("button", "Following")[0];
+                    var unfollowBtn = getElementsLikeHtml("button", "Requested")[0];
+
+                    if (typeof unfollowBtn == "undefined")
+                    		unfollowBtn = getElementsLikeHtml("button", "Following")[0];
 
                     if (typeof unfollowBtn != "undefined") {
                         // unfollow user
@@ -1873,7 +1876,7 @@ function createBotTracker() {
     html += "<p><strong>Follow List Progress</strong>: " + localData.operation.lists.followListIndex + "/" + localData.operation.lists.followList.length + "</p>";
     html += "<p><strong>Unfollow List Progress</strong>: " + localData.operation.lists.unfollowListIndex + "/" + localData.operation.lists.unfollowList.length + "</p>";
     html += "<p><strong>Like List Progress</strong>: " + localData.operation.lists.autoLikeListIndex + "/" + localData.operation.lists.autoLikeList.length + "</p>";
-    html += "<p><strong>Last 429</strong>: " + new Date(localData.operation.counters.last429);
-    html += "<p><strong>Estimated Done Time</strong>: " + finTime.toLocaleString().split(", ")[1];
+    html += "<p><strong>Last 429</strong>: " + new Date(localData.operation.counters.last429) + "</p>";
+    html += "<p><strong>Estimated Done Time</strong>: " + finTime.toLocaleString().split(", ")[1] + "</p>";
     jQuery("body").append(html);
 }
