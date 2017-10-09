@@ -1503,7 +1503,8 @@ function followGetAutoFollow(limit, minimumPostsFromUsers, success, error) {
         data: {
             user_id: localData.user.username,
             limit: limit,
-            min_posts: minimumPostsFromUsers
+            min_posts: minimumPostsFromUsers,
+            tags: JSON.stringify(localData.user.tagInterests)
         },
         success: function (result) {
             result = JSON.parse(result);
