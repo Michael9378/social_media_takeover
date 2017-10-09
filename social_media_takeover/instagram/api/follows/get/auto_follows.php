@@ -3,12 +3,14 @@
 
 require getcwd().'/../../lib/h.php';
 
-if( !isset(  $_POST["user_id"] ) ){
-	jr("Missing user_id param.");	
+if( !isset(  $_POST["user_id"] ) && !isset(  $_POST["tags"] ) ){
+	jr("Missing user_id and/or tags params.");	
 }
 else {
 	
 	$user_id = $_POST["user_id"];
+	$tags = $_POST["tags"];
+	$tags = json_decode($tags);
 	$limit = '2000';
 	$min_posts = '0';
 	
@@ -39,13 +41,19 @@ else {
 			FROM ig_follows 
 			WHERE ig_follows.follows_user_id = "'.$user_id.'"
 		)
-	) AS ig_'.$user_id.'_avgs 
+	) AS ig_'.$user_id.'_avgs, ig_user_tag_interest 
 	WHERE follower_user.user_num_followers < follower_user.user_num_following
 	AND follower_user.user_num_following < 2000
-	AND follower_user.user_num_followers < 2000
+	AND follower_user.user_num_followers < 1500
 	AND follower_user.user_num_following > 200
 	AND follower_user.user_num_followers > 150
 	AND follower_user.user_num_posts > '.$min_posts.'
+	AND (';
+	foreach($tags as $tag){
+		$sql .= 'ig_user_tag_interest.tag_name ="'.$tag.'" OR ';
+	}
+	$sql = substr($sql, 0, -3);
+	$sql .= ')
 	ORDER BY follow_rating) as t1
 	WHERE t1.follower_user_id NOT IN (
 		SELECT user_id
