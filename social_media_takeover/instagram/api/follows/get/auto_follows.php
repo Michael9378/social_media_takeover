@@ -48,6 +48,7 @@ else {
 	AND follower_user.user_num_following > 200
 	AND follower_user.user_num_followers > 150
 	AND follower_user.user_num_posts > '.$min_posts.'
+	AND ig_user_tag_interest.user_id = follower_user.user_id
 	AND (';
 	foreach($tags as $tag){
 		$sql .= 'ig_user_tag_interest.tag_name ="'.$tag.'" OR ';
