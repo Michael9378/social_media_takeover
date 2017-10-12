@@ -367,7 +367,7 @@ function saveTopFollowings() {
 
         timeoutLoop(0, 9, WAIT_BETWEEN_REQUEST_TIME, function () {
             var topPoster = tag.edge_hashtag_to_top_posts.edges[j].node.owner;
-            getUserFollowBase(topPoster.id, true, 2*MAX_USER_SCRAPE/tags.length, function (response) {
+            getUserFollowBase(topPoster.id, true, Math.ceil(2*MAX_USER_SCRAPE/tags.length/9), function (response) {
                 // success
                 responses++;
                 console.log("Got following " + responses + "/" + expectedResponses);
