@@ -41,7 +41,7 @@ var WAIT_ON_PAGE_TIME = 1000 * 25;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
-// main();
+main();
 
 // main function for bot to run
 function main() {
@@ -96,6 +96,58 @@ function main() {
         // passiveTasksLoop();
     }
 
+}
+
+// returns either the local storage item or defaults to a new localData object
+function getLocalData() {
+    var data = localStorage.getItem("ig_bot_local_data");
+
+    if (data == null) {
+
+        data = {};
+
+        // TODO: Make this interactive for a new user to update
+        data.user = {};
+        data.user.igObj = {};
+        data.user.username = "dirtkingdom";
+        data.user.tagInterests = ["motocross", "braap", "dirtbike"];
+        data.user.likeFollowStartTime = 9;
+
+        data.operation = {};
+        data.operation.flags = {};
+        data.operation.flags.likeFollowUsers = 0;
+
+        data.operation.dailyTimer = 0
+
+        data.operation.lists = {};
+        data.operation.lists.errorLog = [];
+        data.operation.lists.tagPages = [];
+        data.operation.lists.scrapeUsers = [];
+        data.operation.lists.followList = [];
+        data.operation.lists.followListIndex = 0;
+        data.operation.lists.unfollowList = [];
+        data.operation.lists.unfollowListIndex = 0;
+        data.operation.lists.autoLikeList = [];
+        data.operation.lists.autoLikeListIndex = 0;
+
+        data.operation.counters = {};
+        data.operation.counters.dailyLikes = 0;
+        data.operation.counters.dailyFollows = 0;
+        data.operation.counters.dailyTimer = 0;
+        data.operation.counters.dailyTaskCounter = 0;
+        data.operation.counters.pageStuckUrl = "";
+        data.operation.counters.pageStuckCounter = 0;
+        data.operation.counters.last429 = 0;
+        data.operation.counters.globalLikes = 0;
+        data.operation.counters.globalFollows = 0;
+
+        localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
+        // logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
+    }
+    else
+        data = JSON.parse(data);
+
+    return data;
 }
 
 /***********************************************
@@ -315,7 +367,7 @@ function saveTopFollowings() {
 
         timeoutLoop(0, 9, WAIT_BETWEEN_REQUEST_TIME, function () {
             var topPoster = tag.edge_hashtag_to_top_posts.edges[j].node.owner;
-            getUserFollowBase(topPoster.id, true, MAX_USER_SCRAPE/tags.length, function (response) {
+            getUserFollowBase(topPoster.id, true, 2*MAX_USER_SCRAPE/tags.length, function (response) {
                 // success
                 responses++;
                 console.log("Got following " + responses + "/" + expectedResponses);
@@ -1039,58 +1091,6 @@ function logEvent(msgType, msg, callback) {
         default:
             console.log(timeStamp + ": Unknown Message Type \"" + msg + "\"");
     }
-}
-
-// returns either the local storage item or defaults to a new localData object
-function getLocalData() {
-    var data = localStorage.getItem("ig_bot_local_data");
-
-    if (data == null) {
-
-        data = {};
-
-        // TODO: Make this interactive for a new user to update
-        data.user = {};
-        data.user.igObj = {};
-        data.user.username = "dirtkingdom";
-        data.user.tagInterests = ["motocross", "braap", "dirtbike"];
-        data.user.likeFollowStartTime = 9;
-
-        data.operation = {};
-        data.operation.flags = {};
-        data.operation.flags.likeFollowUsers = 0;
-        
-        data.operation.dailyTimer = 0
-
-        data.operation.lists = {};
-        data.operation.lists.errorLog = [];
-        data.operation.lists.tagPages = [];
-        data.operation.lists.scrapeUsers = [];
-        data.operation.lists.followList = [];
-        data.operation.lists.followListIndex = 0;
-        data.operation.lists.unfollowList = [];
-        data.operation.lists.unfollowListIndex = 0;
-        data.operation.lists.autoLikeList = [];
-        data.operation.lists.autoLikeListIndex = 0;
-
-        data.operation.counters = {};
-        data.operation.counters.dailyLikes = 0;
-        data.operation.counters.dailyFollows = 0;
-        data.operation.counters.dailyTimer = 0;
-        data.operation.counters.dailyTaskCounter = 0;
-        data.operation.counters.pageStuckUrl = "";
-        data.operation.counters.pageStuckCounter = 0;
-        data.operation.counters.last429 = 0;
-        data.operation.counters.globalLikes = 0;
-        data.operation.counters.globalFollows = 0;
-
-        localStorage.setItem("ig_bot_local_data", JSON.stringify(data));
-        // logEvent(1, "getLocalData: ig_bot_local_data was set to null. Setting to defaults.");
-    }
-    else
-        data = JSON.parse(data);
-
-    return data;
 }
 
 // saves data to local storage under ig_bot_local_data key
