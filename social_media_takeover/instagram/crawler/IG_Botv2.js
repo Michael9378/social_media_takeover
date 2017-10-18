@@ -47,6 +47,9 @@ main();
 function main() {
     // get local data
     localData = getLocalData();
+    
+    // show the bot tracker
+    createBotTracker();
 
     // checks to make sure we arent looping on the same page aimlessly
     if (checkForStuckPage()) {
@@ -512,8 +515,8 @@ function buildLikeFollowList() {
 
     // TODO
     // get unfollow list
-    // grabs list of potential users to follow from the db
-    followGetAutoUnfollow(localData.user.username, MAX_FOLLOWS, function (response) {
+    // grabs list of users to unfollow from the db
+    followGetAutoUnfollow(localData.user.username, MAX_UNFOLLOWS, function (response) {
         // success
 
         // format response correctly
@@ -583,8 +586,6 @@ function finishedRunningDailyTasks() {
 }
 
 function followLoop() {
-    // only create bot tracker when we are in the follow loop as this is when it is relevant
-    createBotTracker();
     // we have follow, unfollow and likeable posts lists build
     var followList = localData.operation.lists.followList;
     var followIndex = localData.operation.lists.followListIndex;
@@ -1872,8 +1873,8 @@ function createBotTracker() {
     actionsLeft -= localData.operation.lists.followListIndex;
     actionsLeft -= localData.operation.lists.unfollowListIndex;
     actionsLeft -= localData.operation.lists.autoLikeListIndex;
-    // estimated time left is wait on page time plus 2 seconds of load time times how many actions we have left
-    var estimatedTimeLeft = (WAIT_ON_PAGE_TIME + 2000) * actionsLeft;
+    // estimated time left is wait on page time plus 3 seconds of load time times how many actions we have left
+    var estimatedTimeLeft = (WAIT_ON_PAGE_TIME + 3000) * actionsLeft;
     var finTime = new Date(curTime.getTime() + estimatedTimeLeft);
 
     var html = "<div id='botTracker' style='position: absolute;bottom: 50px;left: 50px;width: 250px;padding: 20px;background: #fafafa;border: 1px solid #9e9e9e;'>";
