@@ -610,7 +610,7 @@ function followLoop() {
 
     if ((localData.operation.counters.dailyTaskCounter % 2 == 0 || autoLikeIndex >= autoLikeList.length) && (followIndex < followList.length || unfollowIndex < unfollowList.length)) {
         // unfollow or follow a user
-        if (followIndex > unfollowIndex && unfollowIndex < unfollowList.length) {
+        if (followIndex > unfollowIndex && unfollowIndex < unfollowList.length || followIndex >= followList.length) {
             // unfollow
             var user = unfollowList[unfollowIndex];
             var url = "https://www.instagram.com/" + user + "/";
@@ -630,25 +630,24 @@ function followLoop() {
                     if (typeof unfollowBtn != "undefined") {
                         // unfollow user
                         unfollowBtn.click();
-
-                        // update database
-                        botActionUnfollowSet(localData.user.username, user, function () {
-                            console.log("Unfollow tracked in DB.");
-                        }, function () {
-                            logEvent(1, "botActionUnfollowSet: Failed to send unfollow to database. user: " + localData.user.username + " unfollows: " + user, function () { });
-                        });
                     }
 
+                    // update database
+                    botActionUnfollowSet(localData.user.username, user, function () {
+                        console.log("Unfollow tracked in DB.");
+                    }, function () {
+                        logEvent(1, "botActionUnfollowSet: Failed to send unfollow to database. user: " + localData.user.username + " unfollows: " + user, function () { });
+                    });
 
                     // act like we liked this no matter what to avoid getting stuck on the page.
                     localData.operation.lists.unfollowListIndex++;
                     localData.operation.counters.dailyTaskCounter++;
                     saveLocalData(localData);
 
-                    // skip to auto like, you are likely going to that page next anyway
+                    // reload page and move on
                     setTimeout(function () {
                         saveLocalData(localData);
-                        location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+                        location.reload();
                     }, pageWaitRand);
                 }, pageWaitRand);
             }
@@ -688,10 +687,10 @@ function followLoop() {
                         localData.operation.counters.dailyTaskCounter++;
                         saveLocalData(localData);
 
-                        // skip to auto like, you are likely going to that page next anyway
+                        // reload page
                         setTimeout(function () {
                             saveLocalData(localData);
-                            location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex].shortcode + "/";
+                            location.reload();
                         }, pageWaitRand);
                     }, pageWaitRand);
                 }
@@ -732,14 +731,10 @@ function followLoop() {
                     localData.operation.counters.dailyTaskCounter++;
                     saveLocalData(localData);
 
-                    // skip to next auto like, you are likely going to that page next anyway
-                    // unless we are out of likes, then skip to follow as a guess
+                    // reload page
                     setTimeout(function () {
                         saveLocalData(localData);
-                        if (autoLikeIndex + 1 < autoLikeList.length)
-                            location.href = "https://www.instagram.com/p/" + autoLikeList[autoLikeIndex + 1].shortcode + "/";
-                        else
-                            location.href = "https://www.instagram.com/" + followList[followIndex] + "/";
+                        location.reload()
                     }, pageWaitRand);
                 }, pageWaitRand);
             }
