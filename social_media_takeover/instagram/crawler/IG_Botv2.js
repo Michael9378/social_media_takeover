@@ -41,7 +41,7 @@ var WAIT_ON_PAGE_TIME = 1000 * 25;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
-main();
+//main();
 
 // main function for bot to run
 function main() {
@@ -433,7 +433,7 @@ function savePotentialFollows() {
             // success
             // response should hold list of users that we need to get user info for
             // add passed users to beginning of array
-            response = missUsers.concat(response);
+            response = response.concat(missUsers);
 
             var i = 0;
             var usersToSet = []
@@ -1423,7 +1423,6 @@ function userGetMissing(tagInterests, limit, success, error) {
             tag_interest: JSON.stringify(tagInterests)
         };
     }
-    console.log("test");
 
     jQuery.post({
         url: api_url + "/user/get/missing.php",
