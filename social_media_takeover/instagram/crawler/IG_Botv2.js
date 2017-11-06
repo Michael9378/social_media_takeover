@@ -41,7 +41,7 @@ var WAIT_ON_PAGE_TIME = 1000 * 25;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
-//main();
+main();
 
 // main function for bot to run
 function main() {
@@ -429,7 +429,7 @@ function savePotentialFollows() {
     });
 
     function afterGetMissingFollowing(missUsers) {
-        userGetMissing(localData.operation.lists.tagInterests, MAX_USER_SCRAPE, function (response) {
+        userGetMissing(localData.user.tagInterests, MAX_USER_SCRAPE, function (response) {
             // success
             // response should hold list of users that we need to get user info for
             // add passed users to beginning of array
