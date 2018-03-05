@@ -653,6 +653,9 @@ function followLoop() {
                         // unfollow user
                         unfollowBtn.click();
                     }
+                    else {
+                        logEvent(1, "followLoop: didn't find unfollow button on page. Skipping.");
+                    }
 
                     // update database
                     botActionUnfollowSet(localData.user.username, user, function () {
@@ -701,6 +704,9 @@ function followLoop() {
                         }, function () {
                             logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
                         });
+                    }
+                    else {
+                        logEvent(1, "followLoop: didn't find follow button on page. Skipping.");
                     }
 
 
