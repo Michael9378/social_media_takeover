@@ -31,13 +31,13 @@ var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var curTime = new Date();
 var localData;
 
-var MAX_USER_SCRAPE = 2500;
-var MAX_FOLLOWS = 300;
-var MAX_UNFOLLOWS = 300;
+var MAX_USER_SCRAPE = 1600;
+var MAX_FOLLOWS = 550;
+var MAX_UNFOLLOWS = 650;
 var MAX_LIKES = 600;
 
 // TODO: Fine tune wait times
-var WAIT_ON_PAGE_TIME = 1000 * 25;
+var WAIT_ON_PAGE_TIME = 1000 * 20;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
@@ -47,7 +47,7 @@ main();
 function main() {
     // get local data
     localData = getLocalData();
-    
+
     // show the bot tracker
     createBotTracker();
 
@@ -59,18 +59,18 @@ function main() {
 
     if (checkFor429()) {
         console.log("We recently 429'ed. Waiting 10 minutes before checking again.");
-        setTimeout(function () { location.reload();}, 1000 * 60 * 10);
+        setTimeout(function () { location.reload(); }, 1000 * 60 * 10);
         return false;
     }
 
-    // run daily tasks if needed  
+    // run daily tasks if needed
     if (checkAndRunDailyTasks())
         return false;
 
     // We should have populated the db with enough users to run like/follow after the daily tasks
     // run like/follow
     // when deciding whether to like 3 posts or to follow a user, look at how many similar tag hits each post has and likes and how recent the post is.
-    
+
     if (localData.operation.flags.likeFollowUsers)
         followLoop();
     else {
@@ -113,8 +113,8 @@ function getLocalData() {
         data.user = {};
         data.user.igObj = {};
         data.user.username = "dirtkingdom";
-        data.user.tagInterests = ["motocross", "braap", "dirtbike"];
-        data.user.likeFollowStartTime = 9;
+        data.user.tagInterests = ["motocross", "braap", "dirtbike", "glamis"];
+        data.user.likeFollowStartTime = 8;
 
         data.operation = {};
         data.operation.flags = {};
@@ -161,25 +161,25 @@ function getLocalData() {
 **************** Passive Tasks *****************
 ************************************************/
 
-function passiveTasks(){
+function passiveTasks() {
     var threeHours = 1000 * 60 * 60 * 3;
     // TODO
     // populateUsersLoop(threeHours);
 }
 
-function populateUsersLoop(runTime){
+function populateUsersLoop(runTime) {
     // loops and pulls missing users and updates info until runTime has expired
     var resumeLooping = true;
     // after runTime is up, set resumeLooping to false
-    setTimeout(function(){
+    setTimeout(function () {
         resumeLooping = false;
     }, runTime);
     // timeout loop to get user info
-    timeoutLoop(0, 1000*60*60, 4000, function(){
+    timeoutLoop(0, 1000 * 60 * 60, 4000, function () {
         // loop body
 
         // check if we timed out yet
-        if(!resumeLooping){
+        if (!resumeLooping) {
             alert("Done with timer.");
             return;
         }
@@ -188,7 +188,7 @@ function populateUsersLoop(runTime){
         // check if we need to pull more missing users
         // if we do, pull users and add to missing users array
         // then pull user info and update to database
-    }, function(){
+    }, function () {
         // loop done
         alert("Finished looping.");
     });
@@ -370,7 +370,7 @@ function saveTopFollowings() {
 
         timeoutLoop(0, 9, WAIT_BETWEEN_REQUEST_TIME, function () {
             var topPoster = tag.edge_hashtag_to_top_posts.edges[j].node.owner;
-            getUserFollowBase(topPoster.id, true, Math.ceil(2*MAX_USER_SCRAPE/tags.length/9), function (response) {
+            getUserFollowBase(topPoster.id, true, Math.ceil(2 * MAX_USER_SCRAPE / tags.length / 9), function (response) {
                 // success
                 responses++;
                 console.log("Got following " + responses + "/" + expectedResponses);
@@ -423,20 +423,23 @@ function saveTopFollowings() {
 function savePotentialFollows() {
     // TODO: save info from recent posts in localData.operation.lists.tagPages
 
-    userGetMissing(localData.user.username, MAX_USER_SCRAPE, function (response) { afterGetMissingFollowing(response); }, function () {
+    // setting timeout to make sure we dont get stuck trying to scrape users and never move forward.
+    setTimeout(buildLikeFollowList, MAX_USER_SCRAPE * WAIT_BETWEEN_REQUEST_TIME * 2);
+
+    userGetMissing(localData.user.username, MAX_USER_SCRAPE / 4, function (response) { afterGetMissingFollowing(response); }, function () {
         logEvent(2, "savePotentialFollows: failed to get cur user following.", null);
         afterGetMissingFollowing([]);
     });
 
     function afterGetMissingFollowing(missUsers) {
-        userGetMissing(localData.user.tagInterests, MAX_USER_SCRAPE, function (response) {
+        userGetMissing(localData.user.tagInterests, MAX_USER_SCRAPE * 3 / 4, function (response) {
             // success
             // response should hold list of users that we need to get user info for
             // add passed users to beginning of array
             response = response.concat(missUsers);
 
             var i = 0;
-            var usersToSet = []
+            var usersToSet = [];
             timeoutLoop(i, response.length, WAIT_BETWEEN_REQUEST_TIME, function () {
                 getUserInfo(response[i].user_id, function (userObj) {
                     // success
@@ -467,6 +470,10 @@ function savePotentialFollows() {
                 if (usersToSet.length == 0)
                     buildLikeFollowList();
                 else {
+                    if (usersToSet > 50) {
+                        logEvent(2, "savePotentialFollows: usersToSet is over 50 users large at end of loop. Truncating and sending 50 to database.", null);
+                        usersToSet = usersToSet.slice(0, 50);
+                    }
                     userMassSet(usersToSet, buildLikeFollowList, function () {
                         // failed to set the chunk. Log event
                         logEvent(2, "savePotentialFollows: failed to send remainings chunk to db.", null);
@@ -480,7 +487,7 @@ function savePotentialFollows() {
             buildLikeFollowList();
         });
     }
-    
+
 }
 
 function buildLikeFollowList() {
@@ -497,8 +504,10 @@ function buildLikeFollowList() {
 
         // format response correctly
         var formArr = [];
-        for(var i = 0; i < response.length; i++)
+        for (var i = 0; i < response.length; i++)
             formArr.push(response[i].user_id);
+
+        formArr = uniq(formArr);
 
         localData.operation.lists.followList = formArr;
         localData.operation.lists.followListIndex = 0;
@@ -511,6 +520,7 @@ function buildLikeFollowList() {
 
     }, function () {
         console.log("Failed to get auto follow");
+        setTimeout(buildLikeFollowList, 30000);
     });
 
     // TODO
@@ -521,7 +531,7 @@ function buildLikeFollowList() {
 
         // format response correctly
         var formArr = [];
-        for(var i = 0; i < response.length; i++)
+        for (var i = 0; i < response.length; i++)
             formArr.push(response[i].follows_user_id);
 
         localData.operation.lists.unfollowList = formArr;
@@ -535,6 +545,7 @@ function buildLikeFollowList() {
 
     }, function () {
         console.log("Failed to get auto unfollow");
+        setTimeout(buildLikeFollowList, 30000);
     });
 
     // grab a 100-200 recent posts per tag
@@ -542,13 +553,13 @@ function buildLikeFollowList() {
     var tags = localData.user.tagInterests;
 
     for (var i = 0; i < tags.length; i++) {
-        getTagPage(tags[i], Math.ceil(MAX_LIKES/tags.length), function (response) {
+        getTagPage(tags[i], Math.ceil(MAX_LIKES / tags.length), function (response) {
             // success
             responses++;
             response = response.data.hashtag.edge_hashtag_to_media.edges;
             var posts = [];
-            for(var j = 0; j < response.length && posts.length < Math.ceil(MAX_LIKES/tags.length); j++){
-                if(response[j].node.edge_liked_by.count < 50)
+            for (var j = 0; j < response.length && posts.length < Math.ceil(MAX_LIKES / tags.length) ; j++) {
+                if (response[j].node.edge_liked_by.count < 50)
                     posts.push(response[j].node);
             }
             localData.operation.lists.autoLikeList = localData.operation.lists.autoLikeList.concat(posts);
@@ -565,6 +576,16 @@ function buildLikeFollowList() {
             // error
             responses++;
             logEvent(2, "buildLikeFollowList: Failed to get recent tag pages for liking. Skipping tag page for recent likes: " + tags[i]);
+
+            if (responses >= tags.length) {
+                // TODO: Filter posts here before moving on
+
+                // finished a task
+                // check for move on
+                finishedTasks++;
+                if (finishedTasks >= 3)
+                    finishedRunningDailyTasks();
+            }
         });
     }
 
@@ -592,7 +613,7 @@ function followLoop() {
 
     var unfollowList = localData.operation.lists.unfollowList;
     var unfollowIndex = localData.operation.lists.unfollowListIndex;
-    
+
     var autoLikeList = localData.operation.lists.autoLikeList;
     var autoLikeIndex = localData.operation.lists.autoLikeListIndex;
 
@@ -626,7 +647,7 @@ function followLoop() {
                     var unfollowBtn = getElementsLikeHtml("button", "Requested")[0];
 
                     if (typeof unfollowBtn == "undefined")
-                    		unfollowBtn = getElementsLikeHtml("button", "Following")[0];
+                        unfollowBtn = getElementsLikeHtml("button", "Following")[0];
 
                     if (typeof unfollowBtn != "undefined") {
                         // unfollow user
@@ -655,52 +676,8 @@ function followLoop() {
         }
         else {
             // follow
-                var user = followList[followIndex];
-                var url = "https://www.instagram.com/" + user + "/";
-
-                if (location.href != url) {
-                    saveLocalData(localData);
-                    location.href = url;
-                    return false;
-                }
-                else {
-                    setTimeout(function () {
-                        var followBtn = getElementsLikeHtml("button", "Follow")[0];
-
-                        if (typeof followBtn != "undefined") {
-                            // follow user
-                            followBtn.click();
-
-                            localData.operation.counters.dailyFollows++;
-                            localData.operation.counters.globalFollows++;
-
-                            // update database
-                            botActionFollowSet(localData.user.username, user, function () {
-                                console.log("Follow tracked in DB.");
-                            }, function () {
-                                logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
-                            });
-                        }
-
-
-                        // act like we liked this no matter what to avoid getting stuck on the page.
-                        localData.operation.lists.followListIndex++;
-                        localData.operation.counters.dailyTaskCounter++;
-                        saveLocalData(localData);
-
-                        // reload page
-                        setTimeout(function () {
-                            saveLocalData(localData);
-                            location.reload();
-                        }, pageWaitRand);
-                    }, pageWaitRand);
-                }
-        }
-    }
-    else if (autoLikeIndex < autoLikeList.length) {
-        // like post
-            var post = autoLikeList[autoLikeIndex];
-            var url = "https://www.instagram.com/p/" + post.shortcode + "/";
+            var user = followList[followIndex];
+            var url = "https://www.instagram.com/" + user + "/";
 
             if (location.href != url) {
                 saveLocalData(localData);
@@ -709,36 +686,80 @@ function followLoop() {
             }
             else {
                 setTimeout(function () {
-                    // on the page. like the post and log everything
-                    var likeBtn = getElementsByHtml("span", "Like")[0];
+                    var followBtn = getElementsLikeHtml("button", "Follow")[0];
 
-                    if (typeof likeBtn != "undefined") {
-                        // like the post and track it
-                        likeBtn.click();
+                    if (typeof followBtn != "undefined") {
+                        // follow user
+                        followBtn.click();
 
-                        localData.operation.counters.dailyLikes++;
-                        localData.operation.counters.globalLikes++;
+                        localData.operation.counters.dailyFollows++;
+                        localData.operation.counters.globalFollows++;
 
-                        botActionLikeSet(localData.user.username, post.shortcode, function () {
-                            console.log("Tracked like in DB.");
+                        // update database
+                        botActionFollowSet(localData.user.username, user, function () {
+                            console.log("Follow tracked in DB.");
                         }, function () {
-                            logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
+                            logEvent(1, "botActionFollowSet: Failed to send follow to database. user: " + localData.user.username + " follows: " + user, function () { });
                         });
-
                     }
 
+
                     // act like we liked this no matter what to avoid getting stuck on the page.
-                    localData.operation.lists.autoLikeListIndex++;
+                    localData.operation.lists.followListIndex++;
                     localData.operation.counters.dailyTaskCounter++;
                     saveLocalData(localData);
 
                     // reload page
                     setTimeout(function () {
                         saveLocalData(localData);
-                        location.reload()
+                        location.reload();
                     }, pageWaitRand);
                 }, pageWaitRand);
             }
+        }
+    }
+    else if (autoLikeIndex < autoLikeList.length) {
+        // like post
+        var post = autoLikeList[autoLikeIndex];
+        var url = "https://www.instagram.com/p/" + post.shortcode + "/";
+
+        if (location.href != url) {
+            saveLocalData(localData);
+            location.href = url;
+            return false;
+        }
+        else {
+            setTimeout(function () {
+                // on the page. like the post and log everything
+                var likeBtn = getElementsByHtml("span", "Like")[0];
+
+                if (typeof likeBtn != "undefined") {
+                    // like the post and track it
+                    likeBtn.click();
+
+                    localData.operation.counters.dailyLikes++;
+                    localData.operation.counters.globalLikes++;
+
+                    botActionLikeSet(localData.user.username, post.shortcode, function () {
+                        console.log("Tracked like in DB.");
+                    }, function () {
+                        logEvent(1, "botActionLikeSet: Failed to send like to database. user: " + localData.user.username + " post: " + post.shortcode, function () { });
+                    });
+
+                }
+
+                // act like we liked this no matter what to avoid getting stuck on the page.
+                localData.operation.lists.autoLikeListIndex++;
+                localData.operation.counters.dailyTaskCounter++;
+                saveLocalData(localData);
+
+                // reload page
+                setTimeout(function () {
+                    saveLocalData(localData);
+                    location.reload()
+                }, pageWaitRand);
+            }, pageWaitRand);
+        }
     }
     else {
         localData.operation.flags.likeFollowUsers = 0;
@@ -1057,7 +1078,8 @@ function timeoutLoop(index, stop, time, body, done) {
         }, time);
     }
     else {
-        done();
+        if (typeof done == "function")
+            done();
     }
 }
 
@@ -1070,7 +1092,7 @@ function logEvent(msgType, msg, callback) {
     // update this to store logs in the database in the future.
     // update to send errors via email to track problems
     var timeStamp = new Date();
-    switch(msgType){
+    switch (msgType) {
         case 0:
             console.log(timeStamp + ": Log \"" + msg + "\"");
             break;
@@ -1143,6 +1165,14 @@ function checkFor429() {
         return true;
     else
         return false;
+}
+
+function uniq(arr) {
+    var uniqueNames = [];
+    jQuery.each(arr, function (i, el) {
+        if (jQuery.inArray(el, uniqueNames) === -1) uniqueNames.push(el);
+    });
+    return uniqueNames;
 }
 
 /***********************************************
@@ -1371,32 +1401,32 @@ function userGet(user, success, error) {
 }
 
 function historicalSet(user, followers, following, numPosts, success, error) {
-        if (typeof success != 'function')
-            success = function () { };
-        if (typeof error != 'function')
-            error = function () { };
+    if (typeof success != 'function')
+        success = function () { };
+    if (typeof error != 'function')
+        error = function () { };
 
-        jQuery.post({
-            url: api_url + "/user/set/snapshot.php",
-            data: {
-                user_name: user,
-                user_num_followers: followers,
-                user_num_following: following,
-                user_num_posts: numPosts
-            },
-            success: function (result) {
-                result = JSON.parse(result);
-                if (result)
-                    success();
-                else
-                    error();
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+    jQuery.post({
+        url: api_url + "/user/set/snapshot.php",
+        data: {
+            user_name: user,
+            user_num_followers: followers,
+            user_num_following: following,
+            user_num_posts: numPosts
+        },
+        success: function (result) {
+            result = JSON.parse(result);
+            if (result)
+                success();
+            else
                 error();
-            }
-        });
-    }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+            error();
+        }
+    });
+}
 
 function userGetMissing(tagInterests, limit, success, error) {
     if (typeof success != 'function')
@@ -1404,7 +1434,7 @@ function userGetMissing(tagInterests, limit, success, error) {
     if (typeof error != 'function')
         error = function () { };
 
-    var dataThis = {scrape_limit: limit};
+    var dataThis = { scrape_limit: limit };
 
     if (typeof tagInterests == "string") {
         dataThis = {
@@ -1412,7 +1442,7 @@ function userGetMissing(tagInterests, limit, success, error) {
             user_id: tagInterests
         };
     }
-    else if(typeof tagInterests == "object") {
+    else if (typeof tagInterests == "object") {
         dataThis = {
             scrape_limit: limit,
             tag_interest: JSON.stringify(tagInterests)
