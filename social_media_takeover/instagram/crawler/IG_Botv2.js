@@ -267,7 +267,7 @@ function saveCurUserInfo() {
 
         getUserFollowBase(localData.user.igObj.id, true, MAX_USER_SCRAPE, function (response) {
             // success
-            response = response.data.user.edge_followed_by.edges;
+            response = response.graphql.user.edge_followed_by.edges;
             var followers = [];
             for (var k = 0; k < response.length; k++) {
                 followers.push(response[k].node.username);
@@ -275,7 +275,7 @@ function saveCurUserInfo() {
 
             getUserFollowBase(localData.user.igObj.id, false, MAX_USER_SCRAPE, function (response) {
                 // success
-                response = response.data.user.edge_follow.edges;
+                response = response.graphql.user.edge_follow.edges;
                 var following = [];
                 for (var k = 0; k < response.length; k++) {
                     following.push(response[k].node.username);
@@ -306,7 +306,7 @@ function saveCurUserInfo() {
         // set todays stats in db
         historicalSet(localData.user.username, response.edge_followed_by.count, response.edge_follow.count, response.edge_owner_to_timeline_media.count, function () { }, function () {
             logEvent(2, "historicalSet: couldnt save cur user to database.", null);
-        })
+        });
 
         // call to get tag page info
         saveTagPages();
@@ -374,7 +374,7 @@ function saveTopFollowings() {
                 // success
                 responses++;
                 console.log("Got following " + responses + "/" + expectedResponses);
-                response = response.data.user.edge_followed_by.edges;
+                response = response.graphql.user.edge_followed_by.edges;
                 var formattedResponse = [];
                 for (var k = 0; k < response.length; k++) {
                     formattedResponse.push(response[k].node.username);
