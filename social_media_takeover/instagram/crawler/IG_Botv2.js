@@ -31,10 +31,10 @@ var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var curTime = new Date();
 var localData;
 
-var MAX_USER_SCRAPE = 1600;
+var MAX_USER_SCRAPE = 2500;
 var MAX_FOLLOWS = 550;
 var MAX_UNFOLLOWS = 650;
-var MAX_LIKES = 600;
+var MAX_LIKES = 700;
 
 // TODO: Fine tune wait times
 var WAIT_ON_PAGE_TIME = 1000 * 20;
@@ -250,7 +250,7 @@ function saveCurUserInfo() {
     getUserInfo(localData.user.username, function (response) {
         // success
         // save the response and delete unnecessary info
-        response = response.user;
+        response = response.graphql.user;
         delete response.country_block;
         delete response.external_url_linkshimmed;
         delete response.has_requested_viewer;
@@ -304,7 +304,7 @@ function saveCurUserInfo() {
         });
 
         // set todays stats in db
-        historicalSet(localData.user.username, response.followed_by.count, response.follows.count, response.media.count, function () { }, function () {
+        historicalSet(localData.user.username, response.edge_followed_by.count, response.edge_follow.count, response.edge_owner_to_timeline_media.count, function () { }, function () {
             logEvent(2, "historicalSet: couldnt save cur user to database.", null);
         })
 
@@ -467,19 +467,10 @@ function savePotentialFollows() {
 
             }, function () {
                 // finished looping. Save remaining users to database
-                if (usersToSet.length == 0)
-                    buildLikeFollowList();
-                else {
-                    if (usersToSet > 50) {
-                        logEvent(2, "savePotentialFollows: usersToSet is over 50 users large at end of loop. Truncating and sending 50 to database.", null);
-                        usersToSet = usersToSet.slice(0, 50);
-                    }
-                    userMassSet(usersToSet, buildLikeFollowList, function () {
-                        // failed to set the chunk. Log event
-                        logEvent(2, "savePotentialFollows: failed to send remainings chunk to db.", null);
-                        buildLikeFollowList();
-                    });
+                if (usersToSet.length != 0) {
+                    logEvent(2, "savePotentialFollows: usersToSet has leftovers. Ignoring extra " + usersToSet.length + " users.", null);
                 }
+                buildLikeFollowList();
             });
         }, function () {
             // error
