@@ -41,7 +41,7 @@ var WAIT_ON_PAGE_TIME = 1000 * 20;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
-// TODO UNCOMMENT ME main();
+main();
 
 // main function for bot to run
 function main() {
@@ -618,8 +618,7 @@ function finishedRunningDailyTasks() {
     // save local data before task reload
     saveLocalData(localData);
     // reload page to start liking/following/unfollow tasks
-    // TODO UNCOMMENT ME location.reload();
-    console.log("reload");
+    location.reload();
 }
 
 function followLoop() {
