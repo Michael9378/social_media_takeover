@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS ig_botaction_like;
 DROP TABLE IF EXISTS ig_log;
 DROP TABLE IF EXISTS ig_deleted_users;
 DROP TABLE IF EXISTS ig_user_historical;
+DROP TABLE IF EXISTS ig_db_tasks;
 
 CREATE TABLE ig_users
 (
@@ -150,4 +151,11 @@ CREATE TABLE ig_user_historical
 	user_num_following INT,
 	day DATE,
 	PRIMARY KEY (user_id, day)
+);
+
+CREATE TABLE ig_db_tasks 
+(
+	task_name VARCHAR(35),
+	task_done DATE,
+	PRIMARY KEY (task_name)
 );

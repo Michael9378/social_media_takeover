@@ -41,7 +41,7 @@ var WAIT_ON_PAGE_TIME = 1000 * 20;
 var WAIT_BETWEEN_REQUEST_TIME = 1670;
 var MILLISECONDS_IN_A_DAY = 1000 * 60 * 60 * 24;
 
-main();
+// TODO UNCOMMENT ME main();
 
 // main function for bot to run
 function main() {
@@ -217,6 +217,8 @@ function checkAndRunDailyTasks() {
         return false;
     }
 
+    runDbTasks(console.log("Done with DB Tasks"));
+
     clearDailyTotals();
     // saveCurUserInfo will cascade the rest of the daily tasks
     // everything is async so as to prevent querying instagram too quickly
@@ -262,12 +264,15 @@ function saveCurUserInfo() {
         saveLocalData(localData);
         // send to database
         userMassSet([response], function () { }, function () {
-            logEvent(2, "saveCurUserInfo: couldnt save cur user to database.", null);
+            logEvent(1, "saveCurUserInfo: couldnt save cur user to database. Trying again", null);
+            userMassSet([response], function () { }, function () {
+                logEvent(2, "saveCurUserInfo: couldnt save cur user to database. No retry.", null);
+            });
         });
 
         getUserFollowBase(localData.user.igObj.id, true, MAX_USER_SCRAPE, function (response) {
             // success
-            response = response.graphql.user.edge_followed_by.edges;
+            response = response.data.user.edge_followed_by.edges;
             var followers = [];
             for (var k = 0; k < response.length; k++) {
                 followers.push(response[k].node.username);
@@ -275,7 +280,7 @@ function saveCurUserInfo() {
 
             getUserFollowBase(localData.user.igObj.id, false, MAX_USER_SCRAPE, function (response) {
                 // success
-                response = response.graphql.user.edge_follow.edges;
+                response = response.data.user.edge_follow.edges;
                 var following = [];
                 for (var k = 0; k < response.length; k++) {
                     following.push(response[k].node.username);
@@ -322,6 +327,13 @@ function saveTagPages() {
     var tags = localData.user.tagInterests;
     var responses = 0;
     for (var i = 0; i < tags.length; i++) {
+        // check if we 429'd in the last 60 seconds
+        var now = new Date().getTime();
+        if (now - localData.operation.counters.last429 < 60 * 1000) {
+            // we should slow down for a minute.
+            sleep(60);
+        }
+
         getTagPage(tags[i], 20, function (response) {
             // success
             responses++;
@@ -370,11 +382,17 @@ function saveTopFollowings() {
 
         timeoutLoop(0, 9, WAIT_BETWEEN_REQUEST_TIME, function () {
             var topPoster = tag.edge_hashtag_to_top_posts.edges[j].node.owner;
+            // check if we 429'd in the last 60 seconds
+            var now = new Date().getTime();
+            if (now - localData.operation.counters.last429 < 60 * 1000) {
+                // we should slow down for a minute.
+                sleep(60);
+            }
             getUserFollowBase(topPoster.id, true, Math.ceil(2 * MAX_USER_SCRAPE / tags.length / 9), function (response) {
                 // success
                 responses++;
                 console.log("Got following " + responses + "/" + expectedResponses);
-                response = response.graphql.user.edge_followed_by.edges;
+                response = response.data.user.edge_followed_by.edges;
                 var formattedResponse = [];
                 for (var k = 0; k < response.length; k++) {
                     formattedResponse.push(response[k].node.username);
@@ -441,6 +459,12 @@ function savePotentialFollows() {
             var i = 0;
             var usersToSet = [];
             timeoutLoop(i, response.length, WAIT_BETWEEN_REQUEST_TIME, function () {
+                // check if we 429'd in the last 60 seconds
+                var now = new Date().getTime();
+                if (now - localData.operation.counters.last429 < 60 * 1000) {
+                    // we should slow down for a minute.
+                    sleep(60);
+                }
                 getUserInfo(response[i].user_id, function (userObj) {
                     // success
                     // TODO: Add user id to user db table
@@ -594,7 +618,8 @@ function finishedRunningDailyTasks() {
     // save local data before task reload
     saveLocalData(localData);
     // reload page to start liking/following/unfollow tasks
-    location.reload();
+    // TODO UNCOMMENT ME location.reload();
+    console.log("reload");
 }
 
 function followLoop() {
@@ -1172,9 +1197,55 @@ function uniq(arr) {
     return uniqueNames;
 }
 
+function sleep(seconds) {
+
+    console.log("Busy wait for "+seconds+" sec");
+
+    if (typeof seconds != "number")
+        return;
+
+    var e = new Date().getTime() + (seconds * 1000);
+    // while (new Date().getTime() <= e) { }
+}
+
 /***********************************************
 *************** AJAX Functions *****************
 ************************************************/
+
+function runDbTasks(done) {
+
+    if(typeof done != "function")
+        done = function(){};
+
+    jQuery.post({
+        url: api_url + "/db_tasks/get/todo.php",
+        success: function (result) {
+            result = JSON.parse(result);
+            if (result) {
+                var index = 0;
+                timeoutLoop(0, result.length, 5000, function () {
+                    executeDbTask(result[index].task_name);
+                    index++;
+                }, done);
+
+            }
+            else {
+                done();
+            }
+        }
+    });
+}
+
+function executeDbTask(task_name) {
+    logEvent(0, "Executing DB task: " + api_url + "/db_tasks/set/" + task_name + ".php");
+
+    jQuery.post({
+        url: api_url + "/db_tasks/set/" + task_name + ".php",
+        error: function (jqXHR, textStatus, errorThrown) {
+            logEvent(2, url + ": " + textStatus + " " + jqXHR.status + " " + errorThrown);
+        }
+    });
+}
 
 function botActionFollowSet(user, follows, success, error) {
     if (typeof success != 'function')
