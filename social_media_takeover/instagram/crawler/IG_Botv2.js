@@ -31,7 +31,7 @@ var api_url = "https://socialmedia.michaeljscott.net/instagram/api";
 var curTime = new Date();
 var localData;
 
-var MAX_USER_SCRAPE = 2500;
+var MAX_USER_SCRAPE = 1000;
 var MAX_FOLLOWS = 550;
 var MAX_UNFOLLOWS = 650;
 var MAX_LIKES = 700;
@@ -468,7 +468,7 @@ function savePotentialFollows() {
                 getUserInfo(response[i].user_id, function (userObj) {
                     // success
                     // TODO: Add user id to user db table
-                    console.log("Got user info " + i + "/" + response.length + " : " + userObj.user.username);
+                    console.log("Got user info " + i + "/" + response.length + " : " + userObj.graphql.user.username);
                     usersToSet.push(userObj.user);
                     // every 10 responses, send a chunk to the db
                     if (i % 10 == 9) {
@@ -863,11 +863,19 @@ function getUserInfo(username, callback, error) {
     if (typeof error != 'function')
         error = function () { };
 
-    var url = "https://www.instagram.com/" + username + "/?__a=1";
+    var url = "https://www.instagram.com/" + username + "/";
 
     jQuery.get({
         url: url,
-        success: callback,
+        success: function (response) {
+            // response is html page of user. Grab the shared info at the bottom in a script tag.
+            var startIndex = response.indexOf("window._sharedData") + "window._sharedData".length + 2;
+            var jsonString = response.substring(startIndex);
+            jsonString = jsonString.substring(0, jsonString.indexOf("</script>")-1);
+            var windowObj = JSON.parse(jsonString);
+            userObj = windowObj.entry_data.ProfilePage[0];
+            callback(userObj);
+        },
         error: function (jqXHR, textStatus, errorThrown) {
             // if we get a 404, then the user is deleted. Add them to deleted user table
             if (jqXHR.status == 404) {
@@ -890,18 +898,21 @@ function getUserInfo(username, callback, error) {
 }
 
 function getUserPosts(userIDCode, numberPosts, callback, error) {
-    // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
+    // https://www.instagram.com/graphql/query/?query_hash=42323d64886122307be10013ad2dcc44&variables={%22id%22:%221660834993%22,%22first%22:50}
 
-    // User Posts:  17888483320059182
+    // User Posts:  42323d64886122307be10013ad2dcc44
     // first:       Number of posts to pull
     // id:          User id
+
+    // max of 50 posts
+    numberPosts = Math.min(50, numberPosts);
 
     if (typeof callback != 'function')
         callback = function () { };
     if (typeof error != 'function')
         error = function () { };
 
-    var url = "https://www.instagram.com/graphql/query/?query_id=17888483320059182&variables={%22id%22:%22" + userIDCode + "%22,%22first%22:" + numberPosts + "}";
+    var url = "https://www.instagram.com/graphql/query/?query_hash=42323d64886122307be10013ad2dcc44&variables={%22id%22:%22" + userIDCode + "%22,%22first%22:" + numberPosts + "}";
 
     jQuery.get({
         url: url,
@@ -921,12 +932,15 @@ function getUserPosts(userIDCode, numberPosts, callback, error) {
 }
 
 function getUserFollowBase(userIDCode, followersFlag, maxReturned, callback, error) {
-    // https://www.instagram.com/graphql/query/?query_id=17851374694183129&variables={%22id%22:%221660834993%22,%22first%22:1000}
+    // https://www.instagram.com/graphql/query/?query_hash=58712303d941c6855d4e888c5f0cd22f&variables=%7B%22id%22%3A%221660834993%22%2C%22first%22%3A24%7D
 
-    // Followers:   17851374694183129
-    // Following:   17874545323001329
+    // Followers:   37479f2b8209594dde7facb0d904896a
+    // Following:   58712303d941c6855d4e888c5f0cd22f
     // first:       Number of posts to pull
     // id:          User id
+
+    // max of 50 users
+    maxReturned = Math.min(50, maxReturned);
 
     if (typeof callback != 'function')
         callback = function () { };
@@ -936,9 +950,9 @@ function getUserFollowBase(userIDCode, followersFlag, maxReturned, callback, err
     var url;
 
     if (followersFlag)
-        url = "https://www.instagram.com/graphql/query/?query_id=17851374694183129";
+        url = "https://www.instagram.com/graphql/query/?query_hash=37479f2b8209594dde7facb0d904896a";
     else
-        url = "https://www.instagram.com/graphql/query/?query_id=17874545323001329";
+        url = "https://www.instagram.com/graphql/query/?query_hash=58712303d941c6855d4e888c5f0cd22f";
 
     url += "&variables=%7B%22id%22%3A%22" + userIDCode + "%22%2C%22first%22%3A" + maxReturned + "%7D";
 
@@ -960,18 +974,21 @@ function getUserFollowBase(userIDCode, followersFlag, maxReturned, callback, err
 }
 
 function getTagPage(tagName, numberPosts, callback, error) {
-    // https://www.instagram.com/graphql/query/?query_id=17875800862117404&variables={"tag_name":"motocross","first":100}
+    // https://www.instagram.com/graphql/query/?query_hash=ded47faa9a1aaded10161a2ff32abb6b&variables={"tag_name":"motocross","first":50}
 
-    // Tag Posts:   17875800862117404
+    // Tag Posts:   ded47faa9a1aaded10161a2ff32abb6b
     // tag_name:    Needed for tag queries
     // first:       Number of posts to pull
+
+    // max of 50 posts
+    numberPosts = Math.min(50, numberPosts);
 
     if (typeof callback != 'function')
         callback = function () { };
     if (typeof error != 'function')
         error = function () { };
 
-    var url = "https://www.instagram.com/graphql/query/?query_id=17875800862117404&variables={%22tag_name%22:%22" + tagName + "%22,%22first%22:" + numberPosts + "}";
+    var url = "https://www.instagram.com/graphql/query/?query_hash=ded47faa9a1aaded10161a2ff32abb6b&variables={%22tag_name%22:%22" + tagName + "%22,%22first%22:" + numberPosts + "}";
 
     jQuery.get({
         url: url,
